@@ -1,0 +1,24 @@
+{{define "head"}}
+<html>
+    <head>
+        <title>youtube-ar</title>
+        <style>
+            table {border-collapse:collapse;}
+            table, th, td {border: 1px solid;}</style>
+    </head>
+    <body>
+        <form action="/" method="post">
+            <input name="url">
+        </form>
+        <div>
+            <a href="/">Running</a>
+            <a href="/all/">All</a>
+            <a href="/errors/">Errors</a>
+        </div>
+        <hr>
+{{end}}
+
+{{define "foot"}}
+    </body>
+</html>
+{{end}}

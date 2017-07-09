@@ -1,0 +1,6 @@
+{{template "head"}}
+<h2><a href="{{.URL}}">{{.URL}}</a></h2> {{ago .StartedAt}}
+{{if .Output}}<h3>Output</h3><pre>{{.Output}}</pre>{{end}}
+{{if .Error}}<h3>Error</h3><pre>{{.Error}}</pre>{{end}}
+{{if .TorLog}}<h3>TorLog</h3><pre>{{.TorLog}}</pre>{{end}}
+{{template "foot"}}

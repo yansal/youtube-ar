@@ -1,0 +1,14 @@
+{{template "head"}}
+<table>
+    <th>URL</th><th>Started</th><th>Retries</th><th>IP</th><th>Error</th>
+    {{range .}}
+    <tr>
+        <td><a href="/detail/{{.ID}}/">{{.URL}}</a></td>
+        <td>{{ago .StartedAt}}</td>
+        <td>{{.Retries}}</td>
+        <td>{{if .IP}}{{.IP}}{{if .Country}} ({{.Country}}){{end}}{{end}}</td>
+        <td>{{.Error}}</td>
+    </tr>
+    {{end}}
+</table>
+{{template "foot"}}
