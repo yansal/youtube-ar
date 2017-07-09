@@ -160,8 +160,8 @@ func main() {
 	}()
 
 	http.HandleFunc("/", runningHandler)
-	http.Handle("/all", http.RedirectHandler("/all/", http.StatusFound))
-	http.HandleFunc("/all/", allHandler)
+	http.Handle("/done", http.RedirectHandler("/done/", http.StatusFound))
+	http.HandleFunc("/done/", doneHandler)
 	http.Handle("/errors", http.RedirectHandler("/errors/", http.StatusFound))
 	http.HandleFunc("/errors/", errorsHandler)
 	http.HandleFunc("/detail/", detailHandler)
@@ -206,14 +206,14 @@ func runningHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func allHandler(w http.ResponseWriter, r *http.Request) {
+func doneHandler(w http.ResponseWriter, r *http.Request) {
 	var jobs []JobResource
-	if err := db.Select(&jobs, queryMap["select_all.sql"]); err != nil {
+	if err := db.Select(&jobs, queryMap["select_done.sql"]); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := tmpl.ExecuteTemplate(w, "all.html", jobs); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "done.html", jobs); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
