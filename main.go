@@ -259,21 +259,11 @@ type Job struct {
 }
 
 func run(ctx context.Context, job Job) {
+	ch := make(chan struct{})
 	mutex.Lock()
-	jobs[job.id] = make(chan struct{})
+	jobs[job.id] = ch
 	mutex.Unlock()
-
-	defer func() {
-		mutex.Lock()
-		delete(jobs, job.id)
-		mutex.Unlock()
-	}()
-
-	defer func() {
-		mutex.Lock()
-		close(jobs[job.id])
-		mutex.Unlock()
-	}()
+	defer close(ch)
 
 	tmpdir, err := ioutil.TempDir("", "youtube-ar")
 	if err != nil {
