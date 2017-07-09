@@ -1,9 +1,16 @@
 # youtube-ar
 
+## Requirements
+
+* `tor` and `youtube-dl` in `PATH`
+* A PostgreSQL database
+* An S3 bucket
+
 ## TODO(features)
 
 * plug webhooks from youtube, soundcloud, etc.
 * allow to directly download video
+* more storage services
 
 ## TODO(internals)
 
