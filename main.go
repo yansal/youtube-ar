@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"go/build"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -29,41 +30,148 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var (
-	httpAddr   = flag.String("addr", "localhost:8080", "HTTP listening address")
-	pgConnInfo = flag.String("conninfo", "sslmode=disable", "PostgreSQL connection string")
-	s3Bucket   = flag.String("bucket", "", "S3 bucket")
-)
+func main() {
+	mustHaveInPath("tor", "youtube-dl")
 
-var (
-	db       *sqlx.DB
-	queryMap map[string]string
-	tmpl     *template.Template
-	uploader *s3manager.Uploader
-)
+	var (
+		httpAddr   = flag.String("addr", "localhost:8080", "HTTP listening address")
+		pgConnInfo = flag.String("conninfo", "dbname=youtube-ar sslmode=disable", "PostgreSQL connection string")
+		s3Bucket   = flag.String("bucket", "", "S3 bucket")
+	)
+	flag.Parse()
+
+	if *s3Bucket == "" {
+		fmt.Fprintln(os.Stderr, "bucket flag must be set")
+		flag.Usage()
+		os.Exit(2)
+	}
+
+	s, err := newServer(*pgConnInfo, *s3Bucket)
+	if err != nil {
+		log.Fatal(err)
+	}
+	http.Handle("/", s)
+
+	// ctrl+c handler for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	s.ctx = ctx
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sig
+		s.mu.Lock()
+		cancel()
+
+		// wait for all jobs to finish
+		for _, ch := range s.jobs {
+			<-ch
+		}
+
+		os.Exit(0)
+	}()
+
+	log.Fatal(http.ListenAndServe(*httpAddr, nil))
+}
 
 func mustHaveInPath(programs ...string) {
 	for _, program := range programs {
 		if _, err := exec.LookPath(program); err != nil {
-			log.Fatalf(`couldn't find %q in PATH`, program)
+			log.Fatalf("couldn't find %q in PATH", program)
 		}
 	}
 }
 
-func mustHaveS3() {
-	// TODO: check that s3bucket is present and writable, try to create it if not
-	uploader = s3manager.NewUploader(session.Must(session.NewSession()))
+type server struct {
+	db         *sqlx.DB
+	queries    queryMap
+	tmpl       *template.Template
+	s3uploader *s3manager.Uploader
+	s3bucket   string
+
+	ctx  context.Context
+	mu   sync.Mutex
+	jobs map[int]chan struct{}
 }
 
-func mustHaveTemplates() {
-	tmpl = template.Must(
-		template.New("").Funcs(template.FuncMap{
-			"ago": func(t time.Time) string {
-				return fmt.Sprintf("%s (%s)",
-					ago(t),
-					t.Format("2 Jan 2006 15:04:05 MST"))
-			},
-		}).ParseGlob("templates/*.html"))
+func newServer(pgConnInfo, s3bucket string) (*server, error) {
+	db := sqlx.MustConnect("postgres", pgConnInfo)
+
+	queries, err := loadQueries()
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl, err := loadTemplates()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: check that s3bucket is present and writable, try to create it if not
+	s3uploader := s3manager.NewUploader(session.Must(session.NewSession()))
+
+	return &server{
+		db:         db,
+		queries:    queries,
+		tmpl:       tmpl,
+		s3uploader: s3uploader,
+		s3bucket:   s3bucket,
+		jobs:       make(map[int]chan struct{}),
+	}, nil
+}
+
+func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	p := r.URL.Path
+	switch {
+	case p == "/":
+		s.runningHandler(w, r)
+	case p == "/done/":
+		s.doneHandler(w, r)
+	case p == "/errors/":
+		s.errorsHandler(w, r)
+	case strings.HasPrefix(p, "/detail/"):
+		s.detailHandler(w, r)
+	default:
+		http.NotFound(w, r)
+	}
+}
+
+type queryMap map[string]string
+
+func loadQueries() (queryMap, error) {
+	pkg, err := build.Default.Import("github.com/yansal/youtube-ar/queries", "", build.FindOnly)
+	if err != nil {
+		return nil, fmt.Errorf("could not find queries directory: %v", err)
+	}
+
+	fnames, err := filepath.Glob(filepath.Join(pkg.Dir, "*.sql"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	queries := queryMap{}
+	for _, fname := range fnames {
+		b, err := ioutil.ReadFile(fname)
+		if err != nil {
+			log.Fatal(err)
+		}
+		queries[filepath.Base(fname)] = string(b)
+	}
+	return queries, nil
+}
+
+func loadTemplates() (*template.Template, error) {
+	pkg, err := build.Default.Import("github.com/yansal/youtube-ar/templates", "", build.FindOnly)
+	if err != nil {
+		return nil, fmt.Errorf("could not find queries directory: %v", err)
+	}
+
+	return template.New("").Funcs(template.FuncMap{
+		"ago": func(t time.Time) string {
+			return fmt.Sprintf("%s (%s)",
+				ago(t),
+				t.Format("2 Jan 2006 15:04:05 MST"))
+		},
+	}).ParseGlob(filepath.Join(pkg.Dir, "*.html"))
 }
 
 func ago(t time.Time) string {
@@ -105,71 +213,7 @@ func ago(t time.Time) string {
 	}
 }
 
-func mustHaveQueries() {
-	fnames, err := filepath.Glob("queries/*.sql")
-	if err != nil {
-		log.Fatal(err)
-	}
-	if len(fnames) == 0 {
-		log.Fatal("couldn't find queries directory")
-	}
-	queryMap = make(map[string]string)
-	for _, fname := range fnames {
-		b, err := ioutil.ReadFile(fname)
-		if err != nil {
-			log.Fatal(err)
-		}
-		queryMap[filepath.Base(fname)] = string(b)
-	}
-}
-
-func mustHaveDB() {
-	db = sqlx.MustConnect("postgres", *pgConnInfo)
-	db.MustExec(queryMap["create.sql"])
-}
-
-var (
-	ctx, cancel = context.WithCancel(context.Background())
-	mutex       sync.Mutex
-	jobs        = make(map[int]chan struct{})
-)
-
-func main() {
-	flag.Parse()
-
-	mustHaveInPath("tor", "youtube-dl")
-	mustHaveS3()
-	mustHaveTemplates()
-	mustHaveQueries()
-	mustHaveDB()
-
-	// Cancel main context before exiting.
-	// All jobs will finish their running commands and uploads, and the db will be updated
-	exiting := make(chan os.Signal, 1)
-	signal.Notify(exiting, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-exiting
-		cancel()
-
-		mutex.Lock()
-		for _, ch := range jobs {
-			<-ch
-		}
-
-		os.Exit(0)
-	}()
-
-	http.HandleFunc("/", runningHandler)
-	http.Handle("/done", http.RedirectHandler("/done/", http.StatusFound))
-	http.HandleFunc("/done/", doneHandler)
-	http.Handle("/errors", http.RedirectHandler("/errors/", http.StatusFound))
-	http.HandleFunc("/errors/", errorsHandler)
-	http.HandleFunc("/detail/", detailHandler)
-
-	log.Fatal(http.ListenAndServe(*httpAddr, nil))
-}
-
-type JobResource struct {
+type jobResource struct {
 	ID           int
 	URL          string
 	StartedAt    time.Time  `db:"started_at"`
@@ -183,70 +227,71 @@ type JobResource struct {
 	Country      *string
 }
 
-func runningHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) runningHandler(w http.ResponseWriter, r *http.Request) {
 	if url := r.FormValue("url"); url != "" {
 		var id int
-		if err := db.Get(&id, queryMap["insert.sql"], url); err != nil {
+		if err := s.db.Get(&id, s.queries["insert.sql"], url); err != nil {
 			log.Print(err)
 		} else {
-			go run(ctx, Job{id: id, url: url})
+			go s.run(Job{id: id, url: url})
 		}
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 
-	var jobs []JobResource
-	if err := db.Select(&jobs, queryMap["select_running.sql"]); err != nil {
+	var jobs []jobResource
+	if err := s.db.Select(&jobs, s.queries["select_running.sql"]); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := tmpl.ExecuteTemplate(w, "running.html", jobs); err != nil {
+	if err := s.tmpl.ExecuteTemplate(w, "running.html", jobs); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func doneHandler(w http.ResponseWriter, r *http.Request) {
-	var jobs []JobResource
-	if err := db.Select(&jobs, queryMap["select_done.sql"]); err != nil {
+func (s *server) doneHandler(w http.ResponseWriter, r *http.Request) {
+	var jobs []jobResource
+	if err := s.db.Select(&jobs, s.queries["select_done.sql"]); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := tmpl.ExecuteTemplate(w, "done.html", jobs); err != nil {
+	if err := s.tmpl.ExecuteTemplate(w, "done.html", jobs); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func errorsHandler(w http.ResponseWriter, r *http.Request) {
-	var jobs []JobResource
-	if err := db.Select(&jobs, queryMap["select_error.sql"]); err != nil {
+func (s *server) errorsHandler(w http.ResponseWriter, r *http.Request) {
+	var jobs []jobResource
+	if err := s.db.Select(&jobs, s.queries["select_error.sql"]); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := tmpl.ExecuteTemplate(w, "errors.html", jobs); err != nil {
+	if err := s.tmpl.ExecuteTemplate(w, "errors.html", jobs); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func detailHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) detailHandler(w http.ResponseWriter, r *http.Request) {
 	split := strings.Split(r.URL.Path, "/") // ["", "detail", ":id", ...]
+	// TODO: don't panic if len(split) < 3
 	id, err := strconv.Atoi(split[2])
 	if err != nil {
 		http.Error(w, "missing :id parameter in path", http.StatusBadRequest)
 		return
 	}
 
-	var job JobResource
-	if err := db.Get(&job, queryMap["select_detail.sql"], id); err != nil {
+	var job jobResource
+	if err := s.db.Get(&job, s.queries["select_detail.sql"], id); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := tmpl.ExecuteTemplate(w, "detail.html", job); err != nil {
+	if err := s.tmpl.ExecuteTemplate(w, "detail.html", job); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -258,16 +303,16 @@ type Job struct {
 	retries int
 }
 
-func run(ctx context.Context, job Job) {
-	ch := make(chan struct{})
-	mutex.Lock()
-	jobs[job.id] = ch
-	mutex.Unlock()
-	defer close(ch)
+func (s *server) run(job Job) {
+	done := make(chan struct{})
+	s.mu.Lock()
+	s.jobs[job.id] = done
+	s.mu.Unlock()
+	defer close(done)
 
 	tmpdir, err := ioutil.TempDir("", "youtube-ar")
 	if err != nil {
-		if _, dberr := db.Exec(queryMap["update_error.sql"], err.Error(), job.id); dberr != nil {
+		if _, dberr := s.db.Exec(s.queries["update_error.sql"], err.Error(), job.id); dberr != nil {
 			log.Print(dberr)
 		}
 		return
@@ -276,11 +321,11 @@ func run(ctx context.Context, job Job) {
 
 	var tor *torpkg.Tor
 	if job.retries > 0 {
-		ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		ctx, cancel := context.WithTimeout(s.ctx, 10*time.Minute)
 		defer cancel()
 		tor, err = torpkg.New(ctx)
 		if err != nil {
-			if _, dberr := db.Exec(queryMap["update_error.sql"], err.Error(), job.id); dberr != nil {
+			if _, dberr := s.db.Exec(s.queries["update_error.sql"], err.Error(), job.id); dberr != nil {
 				log.Print(dberr)
 			}
 			return
@@ -292,21 +337,21 @@ func run(ctx context.Context, job Job) {
 			log.Print(err)
 			return
 		}
-		if _, dberr := db.Exec(queryMap["update_geoip.sql"], geoip, job.id); dberr != nil {
+		if _, dberr := s.db.Exec(s.queries["update_geoip.sql"], geoip, job.id); dberr != nil {
 			log.Print(dberr)
 			return
 		}
 	}
 
-	output, err := youtubeDL(ctx, job.url, tmpdir, tor)
+	output, err := youtubeDL(s.ctx, job.url, tmpdir, tor)
 	if err != nil {
 		if tor != nil {
-			if _, dberr := db.Exec(queryMap["update_output_error_torlog.sql"], output, err.Error(), tor.Log(), job.id); dberr != nil {
+			if _, dberr := s.db.Exec(s.queries["update_output_error_torlog.sql"], output, err.Error(), tor.Log(), job.id); dberr != nil {
 				log.Print(dberr)
 				return
 			}
 		} else {
-			if _, dberr := db.Exec(queryMap["update_output_error.sql"], output, err.Error(), job.id); dberr != nil {
+			if _, dberr := s.db.Exec(s.queries["update_output_error.sql"], output, err.Error(), job.id); dberr != nil {
 				log.Print(dberr)
 				return
 			}
@@ -318,28 +363,57 @@ func run(ctx context.Context, job Job) {
 		// retry
 		var id int
 		job.retries++
-		if dberr := db.Get(&id, queryMap["insert_retries.sql"], job.url, job.retries); dberr != nil {
+		if dberr := s.db.Get(&id, s.queries["insert_retries.sql"], job.url, job.retries); dberr != nil {
 			log.Print(dberr)
 			return
 		}
-		go run(ctx, Job{id: id, url: job.url, retries: job.retries})
+		go s.run(Job{id: id, url: job.url, retries: job.retries})
 		return
 	}
 
-	if _, dberr := db.Exec(queryMap["update_output.sql"], output, time.Now(), job.id); dberr != nil {
+	if _, dberr := s.db.Exec(s.queries["update_output.sql"], output, time.Now(), job.id); dberr != nil {
 		log.Print(dberr)
 		return
 	}
 
-	if err := uploadAllToS3(ctx, tmpdir); err != nil {
-		if _, dberr := db.Exec(queryMap["update_error.sql"], err.Error(), job.id); dberr != nil {
+	if err := s.uploadAllToS3(tmpdir); err != nil {
+		if _, dberr := s.db.Exec(s.queries["update_error.sql"], err.Error(), job.id); dberr != nil {
 			log.Print(dberr)
 		}
 		return
 	}
-	if _, dberr := db.Exec(queryMap["update_uploaded_at.sql"], time.Now(), job.id); dberr != nil {
+	if _, dberr := s.db.Exec(s.queries["update_uploaded_at.sql"], time.Now(), job.id); dberr != nil {
 		log.Print(dberr)
 	}
+}
+
+func (s *server) uploadAllToS3(dir string) error {
+	fis, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, fi := range fis {
+		if err := s.uploadToS3(filepath.Join(dir, fi.Name())); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *server) uploadToS3(fname string) error {
+	f, err := os.Open(fname)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	_, err = s.s3uploader.UploadWithContext(s.ctx, &s3manager.UploadInput{
+		Bucket: aws.String(s.s3bucket),
+		Key:    aws.String(filepath.Base(fname)),
+		Body:   f,
+	})
+	return err
 }
 
 func youtubeDL(ctx context.Context, url string, tmpdir string, tor *torpkg.Tor) (string, error) {
@@ -360,6 +434,12 @@ func youtubeDL(ctx context.Context, url string, tmpdir string, tor *torpkg.Tor) 
 	return output, err
 }
 
+type geoError struct{ error }
+
+func (e geoError) Error() string {
+	return e.error.Error()
+}
+
 var geoErrorRegexs = []*regexp.Regexp{
 	regexp.MustCompile(`ERROR: The uploader has not made this video available in your country\.`),
 	regexp.MustCompile(`ERROR: .*: YouTube said: This video contains content from .*, who has blocked it on copyright grounds\.`),
@@ -372,39 +452,4 @@ func looksLikeGeoError(output string) bool {
 		}
 	}
 	return false
-}
-
-type geoError struct{ error }
-
-func (e geoError) Error() string {
-	return e.error.Error()
-}
-
-func uploadAllToS3(ctx context.Context, dir string) error {
-	fis, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return err
-	}
-	for _, fi := range fis {
-		if err := uploadToS3(ctx, filepath.Join(dir, fi.Name())); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func uploadToS3(ctx context.Context, fname string) error {
-	f, err := os.Open(fname)
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	_, err = uploader.UploadWithContext(ctx, &s3manager.UploadInput{
-		Bucket: aws.String(*s3Bucket),
-		Key:    aws.String(filepath.Base(fname)),
-		Body:   f,
-	})
-	return err
 }
