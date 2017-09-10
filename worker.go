@@ -33,7 +33,7 @@ type worker struct {
 	running map[int]chan struct{}
 }
 
-func newWorker(pgConnInfo, s3bucket string) (*worker, error) {
+func newWorker(ctx context.Context, pgConnInfo, s3bucket string) (*worker, error) {
 	db := sqlx.MustConnect("postgres", pgConnInfo)
 
 	queries, err := loadQueries()
@@ -61,6 +61,7 @@ func newWorker(pgConnInfo, s3bucket string) (*worker, error) {
 		s3uploader: s3uploader,
 		s3bucket:   s3bucket,
 		running:    make(map[int]chan struct{}),
+		ctx:        ctx,
 	}, nil
 }
 
@@ -80,6 +81,11 @@ func (w *worker) run(job Job) {
 	w.mu.Lock()
 	w.running[job.ID] = done
 	w.mu.Unlock()
+	defer func() {
+		w.mu.Lock()
+		delete(w.running, job.ID)
+		w.mu.Unlock()
+	}()
 	defer close(done)
 
 	tmpdir, err := ioutil.TempDir("", "youtube-ar")
@@ -155,6 +161,18 @@ func (w *worker) run(job Job) {
 	if _, dberr := w.db.Exec(w.queries["update_uploaded_at.sql"], time.Now(), job.ID); dberr != nil {
 		log.Print(dberr)
 	}
+}
+
+func (w *worker) shutdown() error {
+	if err := w.l.UnlistenAll(); err != nil {
+		log.Print(err)
+	}
+
+	w.mu.Lock()
+	for _, ch := range w.running {
+		<-ch
+	}
+	return nil
 }
 
 func (w *worker) uploadAllToS3(dir string) error {

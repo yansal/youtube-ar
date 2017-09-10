@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"os/signal"
 	"syscall"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -28,37 +30,52 @@ func main() {
 		os.Exit(2)
 	}
 
-	s, err := newServer(*pgConnInfo)
-	if err != nil {
-		log.Fatal(err)
-	}
-	http.Handle("/", s)
+	g, ctx := errgroup.WithContext(context.Background())
 
-	w, err := newWorker(*pgConnInfo, *s3Bucket)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// ctrl+c handler for graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	w.ctx = ctx
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sig
-		w.mu.Lock()
-		cancel()
-
-		// wait for all jobs to finish
-		for _, ch := range w.running {
-			<-ch
+	g.Go(func() error {
+		s, err := newServer(*pgConnInfo)
+		if err != nil {
+			return err
 		}
+		http.Handle("/", s)
 
-		os.Exit(0)
-	}()
+		srv := &http.Server{Addr: *httpAddr}
+		cerr := make(chan error)
+		go func() {
+			cerr <- srv.ListenAndServe()
+		}()
 
-	go w.loop()
-	log.Fatal(http.ListenAndServe(*httpAddr, nil))
+		select {
+		case <-ctx.Done():
+			return srv.Shutdown(context.Background())
+		case err := <-cerr:
+			return err
+		}
+	})
+
+	g.Go(func() error {
+		w, err := newWorker(ctx, *pgConnInfo, *s3Bucket)
+		if err != nil {
+			return err
+		}
+		go w.loop()
+
+		<-ctx.Done()
+		return w.shutdown()
+	})
+
+	g.Go(func() error {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+		select {
+		case <-ctx.Done():
+			return nil
+		case s := <-sig:
+			return fmt.Errorf("Got signal %v", s)
+		}
+	})
+
+	log.Print(g.Wait())
 }
 
 func mustHaveInPath(programs ...string) {
