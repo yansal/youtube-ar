@@ -6,6 +6,15 @@
 * A PostgreSQL database
 * An S3 bucket
 
+## Migrate schema
+
+    createdb youtube-ar && psql youtube-ar < schema.sql
+
+## Start application
+
+    go install
+    AWS_SDK_LOAD_CONFIG=1 youtube-ar -bucket <my-s3-bucket>
+
 ## TODO(features)
 
 * plug webhooks from youtube, soundcloud, etc.
