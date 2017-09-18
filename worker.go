@@ -34,6 +34,10 @@ type worker struct {
 }
 
 func newWorker(ctx context.Context, pgConnInfo, s3bucket string) (*worker, error) {
+	if err := isInPath("tor", "youtube-dl"); err != nil {
+		return nil, err
+	}
+
 	db := sqlx.MustConnect("postgres", pgConnInfo)
 
 	queries, err := loadQueries()

@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 
@@ -15,8 +14,6 @@ import (
 )
 
 func main() {
-	mustHaveInPath("tor", "youtube-dl")
-
 	var (
 		httpAddr   = flag.String("addr", "localhost:8080", "HTTP listening address")
 		pgConnInfo = flag.String("conninfo", "dbname=youtube-ar sslmode=disable", "PostgreSQL connection string")
@@ -76,12 +73,4 @@ func main() {
 	})
 
 	log.Print(g.Wait())
-}
-
-func mustHaveInPath(programs ...string) {
-	for _, program := range programs {
-		if _, err := exec.LookPath(program); err != nil {
-			log.Fatalf("couldn't find %q in PATH", program)
-		}
-	}
 }

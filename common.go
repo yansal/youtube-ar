@@ -5,7 +5,7 @@ import (
 	"go/build"
 	"html/template"
 	"io/ioutil"
-	"log"
+	"os/exec"
 	"path/filepath"
 	"time"
 )
@@ -24,6 +24,15 @@ type Job struct {
 	Country      *string
 }
 
+func isInPath(programs ...string) error {
+	for _, program := range programs {
+		if _, err := exec.LookPath(program); err != nil {
+			return fmt.Errorf("couldn't find %q in PATH", program)
+		}
+	}
+	return nil
+}
+
 type queryMap map[string]string
 
 func loadQueries() (queryMap, error) {
@@ -34,14 +43,14 @@ func loadQueries() (queryMap, error) {
 
 	fnames, err := filepath.Glob(filepath.Join(pkg.Dir, "*.sql"))
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("could not glob queries directory: %v", err)
 	}
 
 	queries := queryMap{}
 	for _, fname := range fnames {
 		b, err := ioutil.ReadFile(fname)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("could not read file %s: %v", fname, err)
 		}
 		queries[filepath.Base(fname)] = string(b)
 	}
