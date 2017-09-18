@@ -1,3 +1,3 @@
 update jobs
-    set error = $1
+    set status = 'error', error = $1
     where id = $2;
