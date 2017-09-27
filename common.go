@@ -1,12 +1,10 @@
+//go:generate go run generate_embed.go
 package main
 
 import (
 	"fmt"
-	"go/build"
 	"html/template"
-	"io/ioutil"
 	"os/exec"
-	"path/filepath"
 	"time"
 )
 
@@ -33,43 +31,22 @@ func isInPath(programs ...string) error {
 	return nil
 }
 
-type queryMap map[string]string
-
-func loadQueries() (queryMap, error) {
-	pkg, err := build.Default.Import("github.com/yansal/youtube-ar/queries", "", build.FindOnly)
-	if err != nil {
-		return nil, fmt.Errorf("could not find queries directory: %v", err)
-	}
-
-	fnames, err := filepath.Glob(filepath.Join(pkg.Dir, "*.sql"))
-	if err != nil {
-		return nil, fmt.Errorf("could not glob queries directory: %v", err)
-	}
-
-	queries := queryMap{}
-	for _, fname := range fnames {
-		b, err := ioutil.ReadFile(fname)
-		if err != nil {
-			return nil, fmt.Errorf("could not read file %s: %v", fname, err)
-		}
-		queries[filepath.Base(fname)] = string(b)
-	}
-	return queries, nil
-}
-
 func loadTemplates() (*template.Template, error) {
-	pkg, err := build.Default.Import("github.com/yansal/youtube-ar/templates", "", build.FindOnly)
-	if err != nil {
-		return nil, fmt.Errorf("could not find templates directory: %v", err)
-	}
-
-	return template.New("").Funcs(template.FuncMap{
+	t := template.New("").Funcs(template.FuncMap{
 		"ago": func(t time.Time) string {
 			return fmt.Sprintf("%s (%s)",
 				ago(t),
 				t.Format("2 Jan 2006 15:04:05 MST"))
 		},
-	}).ParseGlob(filepath.Join(pkg.Dir, "*.html"))
+	})
+
+	for k, v := range templates {
+		_, err := t.New(k).Parse(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return t, nil
 }
 
 func ago(t time.Time) string {

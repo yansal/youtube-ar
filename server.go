@@ -12,17 +12,12 @@ import (
 
 type server struct {
 	db      *sqlx.DB
-	queries queryMap
+	queries map[string]string
 	tmpl    *template.Template
 }
 
 func newServer(pgConnInfo string) (*server, error) {
 	db := sqlx.MustConnect("postgres", pgConnInfo)
-
-	queries, err := loadQueries()
-	if err != nil {
-		return nil, err
-	}
 
 	tmpl, err := loadTemplates()
 	if err != nil {

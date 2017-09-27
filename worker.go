@@ -24,7 +24,7 @@ import (
 type worker struct {
 	l          *pq.Listener
 	db         *sqlx.DB
-	queries    queryMap
+	queries    map[string]string
 	s3uploader *s3manager.Uploader
 	s3bucket   string
 
@@ -39,11 +39,6 @@ func newWorker(ctx context.Context, pgConnInfo, s3bucket string) (*worker, error
 	}
 
 	db := sqlx.MustConnect("postgres", pgConnInfo)
-
-	queries, err := loadQueries()
-	if err != nil {
-		return nil, err
-	}
 
 	// TODO: check that s3bucket is present and writable, try to create it if not
 	s3uploader := s3manager.NewUploader(session.Must(session.NewSession()))

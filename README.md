@@ -22,5 +22,4 @@
 
 ## TODO(internals)
 
-* package queries and templates (maybe with https://github.com/GeertJohan/go.rice)
 * use named parameters in queries
