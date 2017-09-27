@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -49,6 +50,8 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.errorsHandler(w, r)
 	case strings.HasPrefix(p, "/detail/"):
 		s.detailHandler(w, r)
+	case p == "/_status/":
+		s.statusHandler(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -111,5 +114,19 @@ func (s *server) detailHandler(w http.ResponseWriter, r *http.Request) {
 	if err := s.tmpl.ExecuteTemplate(w, "detail.html", job); err != nil {
 		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *server) statusHandler(w http.ResponseWriter, r *http.Request) {
+	var jobs []Job
+	if err := s.db.Select(&jobs, s.queries["select_running.sql"]); err != nil {
+		log.Print(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(jobs) > 0 {
+		fmt.Fprint(w, "running")
+	} else {
+		fmt.Fprint(w, "idle")
 	}
 }
