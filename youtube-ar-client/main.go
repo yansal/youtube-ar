@@ -46,7 +46,18 @@ func main() {
 		if err := post(*addr, *obj.Key); err != nil {
 			log.Fatal(err)
 		}
-		if _, err := s3svc.DeleteObject(&s3.DeleteObjectInput{Bucket: s3bucket, Key: obj.Key}); err != nil {
+
+		// TODO: we use DeleteObjects because DeleteObject doesn't actually delete.
+		if _, err := s3svc.DeleteObjects(&s3.DeleteObjectsInput{
+			Bucket: s3bucket,
+			Delete: &s3.Delete{
+				Objects: []*s3.ObjectIdentifier{
+					{
+						Key: obj.Key,
+					},
+				},
+			},
+		}); err != nil {
 			log.Fatal(err)
 		}
 	}
