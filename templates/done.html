@@ -1,14 +1,21 @@
 {{template "head"}}
-<table>
-    <th>URL</th><th>Started</th><th>Downloaded</th><th>Uploaded</th><th>Retries</th><th>IP</th>
-    {{range .}}
+<table border="1">
     <tr>
-        <td><a href="/detail/{{.ID}}/">{{.URL}}</a></td>
-        <td>{{ago .StartedAt}}</td>
-        <td>{{if .DownloadedAt}}{{ago .DownloadedAt}}{{end}}</td>
-        <td>{{if .UploadedAt}}{{ago .UploadedAt}}{{end}}</td>
-        <td>{{.Retries}}</td>
-        <td>{{if .IP}}{{.IP}}{{if .Country}} ({{.Country}}){{end}}{{end}}</td>
+        <th align="center">URL</th>
+        <th align="center">Started</th>
+        <th align="center">Downloaded</th>
+        <th align="center">Uploaded</th>
+        <th align="center">Retries</th>
+        <th align="center">IP</th>
+    </tr>
+    {{range .}}
+    <tr valign="top">
+        <td align="left"><a href="/detail/{{.ID}}/">{{.URL}}</a></td>
+        <td align="left">{{ago .StartedAt}}</td>
+        <td align="left">{{if .DownloadedAt}}{{ago .DownloadedAt}}{{end}}</td>
+        <td align="left">{{if .UploadedAt}}{{ago .UploadedAt}}{{end}}</td>
+        <td align="right">{{.Retries}}</td>
+        <td align="left">{{if .IP}}{{.IP}}{{if .Country}} ({{.Country}}){{end}}{{end}}</td>
     </tr>
     {{end}}
 </table>

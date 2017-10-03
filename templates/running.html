@@ -1,12 +1,17 @@
 {{template "head"}}
-<table>
-    <th>URL</th><th>Started</th><th>Retries</th><th>IP</th>
-    {{range .}}
+<table border="1">
     <tr>
-        <td>{{.URL}}</td>
-        <td>{{ago .StartedAt}}</td>
-        <td>{{.Retries}}</td>
-        <td>{{if .IP}}{{.IP}}{{if .Country}} ({{.Country}}){{end}}{{end}}</td>
+        <th align="center">URL</th>
+        <th align="center">Started</th>
+        <th align="center">Retries</th>
+        <th align="center">IP</th>
+    </tr>
+    {{range .}}
+    <tr valign="top">
+        <td align="left">{{.URL}}</td>
+        <td align="left">{{ago .StartedAt}}</td>
+        <td align="right">{{.Retries}}</td>
+        <td align="left">{{if .IP}}{{.IP}}{{if .Country}} ({{.Country}}){{end}}{{end}}</td>
     </tr>
     {{end}}
 </table>
