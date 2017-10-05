@@ -21,6 +21,19 @@ func main() {
 	)
 	flag.Parse()
 
+	var env string
+	env = os.Getenv("DATABASE_URL")
+	if env != "" {
+		*pgConnInfo = env
+	}
+	env = os.Getenv("PORT")
+	if env != "" {
+		*httpAddr = ":" + env
+	}
+	env = os.Getenv("S3_BUCKET")
+	if env != "" {
+		*s3Bucket = env
+	}
 	if *s3Bucket == "" {
 		fmt.Fprintln(os.Stderr, "bucket flag must be set")
 		flag.Usage()
