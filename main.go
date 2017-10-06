@@ -1,3 +1,4 @@
+//go:generate go run generate_embed.go
 package main
 
 import (
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -88,4 +90,18 @@ func main() {
 	})
 
 	log.Print(g.Wait())
+}
+
+type Job struct {
+	ID           int        `json:"id"`
+	URL          string     `json:"url"`
+	Retries      int        `json:"retries"`
+	StartedAt    time.Time  `db:"started_at"`
+	DownloadedAt *time.Time `db:"downloaded_at"`
+	UploadedAt   *time.Time `db:"uploaded_at"`
+	Output       *string
+	Error        *string
+	TorLog       *string
+	IP           *string
+	Country      *string
 }

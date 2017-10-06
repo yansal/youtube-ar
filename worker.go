@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -62,6 +63,15 @@ func newWorker(ctx context.Context, pgConnInfo, s3bucket string) (*worker, error
 		running:    make(map[int]chan struct{}),
 		ctx:        ctx,
 	}, nil
+}
+
+func isInPath(programs ...string) error {
+	for _, program := range programs {
+		if _, err := exec.LookPath(program); err != nil {
+			return fmt.Errorf("couldn't find %q in PATH", program)
+		}
+	}
+	return nil
 }
 
 func (w *worker) loop() {
