@@ -12,7 +12,7 @@
 
 ## Start application
 
-    go install && AWS_SDK_LOAD_CONFIG=1 youtube-ar -bucket <my-s3-bucket>
+    go install && AWS_REGION=<aws-region> S3_BUCKET=<s3-bucket> youtube-ar
 
 ## TODO(features)
 

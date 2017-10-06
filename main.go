@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,42 +17,33 @@ import (
 func main() {
 	log.SetFlags(log.Lshortfile)
 
-	var (
-		httpAddr   = flag.String("addr", "localhost:8080", "HTTP listening address")
-		pgConnInfo = flag.String("conninfo", "dbname=youtube-ar sslmode=disable", "PostgreSQL connection string")
-		s3Bucket   = flag.String("bucket", "", "S3 bucket")
-	)
-	flag.Parse()
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = "dbname=youtube-ar sslmode=disable"
+	}
 
-	var env string
-	env = os.Getenv("DATABASE_URL")
-	if env != "" {
-		*pgConnInfo = env
+	httpAddr := "localhost:8080"
+	port := os.Getenv("PORT")
+	if port != "" {
+		httpAddr = ":" + port
 	}
-	env = os.Getenv("PORT")
-	if env != "" {
-		*httpAddr = ":" + env
-	}
-	env = os.Getenv("S3_BUCKET")
-	if env != "" {
-		*s3Bucket = env
-	}
-	if *s3Bucket == "" {
-		fmt.Fprintln(os.Stderr, "bucket flag must be set")
-		flag.Usage()
+
+	s3Bucket := os.Getenv("S3_BUCKET")
+	if s3Bucket == "" {
+		fmt.Fprintln(os.Stderr, "S3_BUCKET env must be set")
 		os.Exit(2)
 	}
 
 	g, ctx := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
-		s, err := newServer(*pgConnInfo)
+		s, err := newServer(databaseURL)
 		if err != nil {
 			return err
 		}
 		http.Handle("/", s)
 
-		srv := &http.Server{Addr: *httpAddr}
+		srv := &http.Server{Addr: httpAddr}
 		cerr := make(chan error)
 		go func() {
 			cerr <- srv.ListenAndServe()
@@ -68,7 +58,7 @@ func main() {
 	})
 
 	g.Go(func() error {
-		w, err := newWorker(ctx, *pgConnInfo, *s3Bucket)
+		w, err := newWorker(ctx, databaseURL, s3Bucket)
 		if err != nil {
 			return err
 		}
