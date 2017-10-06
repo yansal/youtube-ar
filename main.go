@@ -14,6 +14,8 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.Lshortfile)
+
 	var (
 		httpAddr   = flag.String("addr", "localhost:8080", "HTTP listening address")
 		pgConnInfo = flag.String("conninfo", "dbname=youtube-ar sslmode=disable", "PostgreSQL connection string")
