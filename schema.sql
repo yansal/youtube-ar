@@ -11,6 +11,7 @@ CREATE TABLE jobs (
     retries integer DEFAULT 0 NOT NULL,
     geoip jsonb,
     torlog text,
+    feed xml,
     CONSTRAINT status_running CHECK (status <> 'running' OR (error IS NULL AND uploaded_at IS NULL)),
     CONSTRAINT status_done CHECK (status <> 'done' OR (error IS NULL AND output IS NOT NULL AND uploaded_at IS NOT NULL)),
     CONSTRAINT status_error CHECK (status <> 'error' OR (error IS NOT NULL AND uploaded_at IS NULL))

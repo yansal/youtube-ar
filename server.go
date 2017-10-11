@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -51,6 +53,8 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.errorsHandler(w, r)
 	case strings.HasPrefix(p, "/detail/"):
 		s.detailHandler(w, r)
+	case p == "/callback/":
+		s.callbackHandler(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -170,5 +174,47 @@ func ago(t time.Time) string {
 		return "1 second ago"
 	} else {
 		return "just now"
+	}
+}
+
+func (s *server) callbackHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		fmt.Fprint(w, r.URL.Query().Get("hub.challenge"))
+	case http.MethodPost:
+		defer r.Body.Close()
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		var v struct {
+			Entry struct {
+				Link struct {
+					Href string `xml:"href,attr"`
+				} `xml:"link"`
+			} `xml:"entry"`
+			DeletedEntry *struct {
+				XMLName xml.Name `json:"-" xml:"deleted-entry"`
+			}
+		}
+		if err := xml.Unmarshal(b, &v); err != nil {
+			log.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if v.DeletedEntry != nil {
+			log.Printf("got deleted-entry. See request body below:\n%s", b)
+			return
+		}
+		if _, err := s.db.Exec(s.queries["insert_feed.sql"], v.Entry.Link.Href, b); err != nil {
+			log.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
