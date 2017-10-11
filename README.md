@@ -18,7 +18,6 @@
 
 * plug webhooks from youtube, soundcloud, etc.
 * allow to directly download video
-* allow to explore storage
 * more storage services
 
 ## TODO(internals)
