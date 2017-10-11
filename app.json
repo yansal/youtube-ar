@@ -1,6 +1,7 @@
 {
   "name": "youtube-ar",
   "scripts": {
+    "postdeploy": "psql youtube-ar < schema.sql"
   },
   "env": {
     "AWS_ACCESS_KEY_ID": {
