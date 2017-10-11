@@ -19,7 +19,3 @@
 * plug webhooks from youtube, soundcloud, etc.
 * allow to directly download video
 * more storage services
-
-## TODO(internals)
-
-* use named parameters in queries
