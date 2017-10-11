@@ -1,3 +1,5 @@
+BEGIN;
+
 CREATE TYPE job_status AS ENUM ('running', 'done', 'error');
 CREATE TABLE jobs (
     id serial PRIMARY KEY,
@@ -39,3 +41,5 @@ CREATE TRIGGER tr AFTER INSERT
   ON jobs
   FOR EACH ROW
   EXECUTE PROCEDURE f();
+
+COMMIT;
