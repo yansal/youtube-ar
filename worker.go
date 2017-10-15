@@ -198,18 +198,28 @@ func (w *worker) uploadAllToS3(dir string) error {
 }
 
 func (w *worker) uploadToS3(fname string) error {
+	input := &s3manager.UploadInput{
+		Bucket: aws.String(w.s3bucket),
+		Key:    aws.String(filepath.Base(fname)),
+	}
+
+	switch {
+	case strings.HasSuffix(fname, ".mp3"):
+		input.ContentType = aws.String("audio/mpeg")
+	case strings.HasSuffix(fname, ".mp4"):
+		input.ContentType = aws.String("video/mp4")
+	case strings.HasSuffix(fname, ".webm"):
+		input.ContentType = aws.String("video/webm")
+	}
+
 	f, err := os.Open(fname)
 	if err != nil {
 		return err
 	}
-
 	defer f.Close()
+	input.Body = f
 
-	_, err = w.s3uploader.UploadWithContext(w.ctx, &s3manager.UploadInput{
-		Bucket: aws.String(w.s3bucket),
-		Key:    aws.String(filepath.Base(fname)),
-		Body:   f,
-	})
+	_, err = w.s3uploader.UploadWithContext(w.ctx, input)
 	return err
 }
 
