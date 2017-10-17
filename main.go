@@ -94,4 +94,5 @@ type Job struct {
 	TorLog       *string
 	IP           *string
 	Country      *string
+	Feed         *string
 }
