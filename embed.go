@@ -9,6 +9,7 @@ var queries = map[string]string{
 	"select_done.sql":                "select\n    id, url, started_at, downloaded_at, uploaded_at, output, error, retries, geoip->>'ip' as ip, geoip->>'country_name' as country\n    from jobs\n    where status = 'done'\n    order by started_at desc\n    limit 100;",
 	"select_error.sql":               "select\n    id, url, started_at, error, retries, geoip->>'ip' as ip, geoip->>'country_name' as country\n    from jobs\n    where status = 'error'\n    order by started_at desc\n    limit 100;",
 	"select_running.sql":             "select\n    url, started_at, retries, geoip->>'ip' as ip, geoip->>'country_name' as country\n    from jobs\n    where status = 'running'\n    order by started_at desc;",
+	"select_running_for_update.sql":  "select\n    id, url, retries\n    from jobs\n    where status = 'running'\n    order by started_at\n    limit 1\n    for update skip locked;",
 	"update_error.sql":               "update jobs\n    set status = 'error', error = $1\n    where id = $2;",
 	"update_geoip.sql":               "update jobs\n    set geoip = $1\n    where id = $2;",
 	"update_output.sql":              "update jobs\n    set output = $1, downloaded_at = $2\n    where id = $3;",

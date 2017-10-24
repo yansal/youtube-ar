@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -50,7 +51,7 @@ func newWorker(ctx context.Context, pgConnInfo, s3bucket string) (*worker, error
 		}
 	})
 
-	if err := l.Listen("job"); err != nil {
+	if err := l.Listen("jobs"); err != nil {
 		return nil, err
 	}
 
@@ -75,17 +76,37 @@ func isInPath(programs ...string) error {
 }
 
 func (w *worker) loop() {
-	for {
-		payload := <-w.l.Notify
-		var job Job
-		if err := json.Unmarshal([]byte(payload.Extra), &job); err != nil {
-			log.Print(err)
-		}
-		go w.run(job)
+	for range w.l.Notify {
+		w.getWork()
 	}
 }
 
-func (w *worker) run(job Job) {
+func (w *worker) getWork() {
+	for {
+		tx, err := w.db.Beginx()
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		var job Job
+		if err := tx.Get(&job, w.queries["select_running_for_update.sql"]); err == sql.ErrNoRows {
+			rollback(tx)
+			return
+		} else if err != nil {
+			log.Print(err)
+			rollback(tx)
+			continue
+		}
+		go w.doWork(tx, job)
+	}
+}
+
+func rollback(tx *sqlx.Tx) {
+	if dberr := tx.Rollback(); dberr != nil {
+		log.Print(dberr)
+	}
+}
+func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 	done := make(chan struct{})
 	w.mu.Lock()
 	w.running[job.ID] = done
@@ -97,9 +118,16 @@ func (w *worker) run(job Job) {
 	}()
 	defer close(done)
 
+	defer func() {
+		defer tx.Rollback()
+		if err := tx.Commit(); err != nil {
+			log.Print(err)
+		}
+	}()
+
 	tmpdir, err := ioutil.TempDir("", "youtube-ar")
 	if err != nil {
-		if _, dberr := w.db.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
+		if _, dberr := tx.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
 			log.Print(dberr)
 		}
 		return
@@ -112,7 +140,7 @@ func (w *worker) run(job Job) {
 		defer cancel()
 		tor, err = torpkg.New(ctx)
 		if err != nil {
-			if _, dberr := w.db.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
+			if _, dberr := tx.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
 				log.Print(dberr)
 			}
 			return
@@ -124,7 +152,7 @@ func (w *worker) run(job Job) {
 			log.Print(err)
 			return
 		}
-		if _, dberr := w.db.Exec(w.queries["update_geoip.sql"], geoip, job.ID); dberr != nil {
+		if _, dberr := tx.Exec(w.queries["update_geoip.sql"], geoip, job.ID); dberr != nil {
 			log.Print(dberr)
 			return
 		}
@@ -133,12 +161,12 @@ func (w *worker) run(job Job) {
 	output, err := youtubeDL(w.ctx, job.URL, tmpdir, tor)
 	if err != nil {
 		if tor != nil {
-			if _, dberr := w.db.Exec(w.queries["update_output_error_torlog.sql"], output, err.Error(), tor.Log(), job.ID); dberr != nil {
+			if _, dberr := tx.Exec(w.queries["update_output_error_torlog.sql"], output, err.Error(), tor.Log(), job.ID); dberr != nil {
 				log.Print(dberr)
 				return
 			}
 		} else {
-			if _, dberr := w.db.Exec(w.queries["update_output_error.sql"], output, err.Error(), job.ID); dberr != nil {
+			if _, dberr := tx.Exec(w.queries["update_output_error.sql"], output, err.Error(), job.ID); dberr != nil {
 				log.Print(dberr)
 				return
 			}
@@ -156,18 +184,18 @@ func (w *worker) run(job Job) {
 		return
 	}
 
-	if _, dberr := w.db.Exec(w.queries["update_output.sql"], output, time.Now(), job.ID); dberr != nil {
+	if _, dberr := tx.Exec(w.queries["update_output.sql"], output, time.Now(), job.ID); dberr != nil {
 		log.Print(dberr)
 		return
 	}
 
 	if err := w.uploadAllToS3(tmpdir); err != nil {
-		if _, dberr := w.db.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
+		if _, dberr := tx.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
 			log.Print(dberr)
 		}
 		return
 	}
-	if _, dberr := w.db.Exec(w.queries["update_uploaded_at.sql"], time.Now(), job.ID); dberr != nil {
+	if _, dberr := tx.Exec(w.queries["update_uploaded_at.sql"], time.Now(), job.ID); dberr != nil {
 		log.Print(dberr)
 	}
 }
