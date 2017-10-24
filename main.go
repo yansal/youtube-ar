@@ -11,8 +11,13 @@ import (
 	"syscall"
 	"time"
 
+	raven "github.com/getsentry/raven-go"
 	"golang.org/x/sync/errgroup"
 )
+
+func init() {
+	raven.SetDSN(os.Getenv("SENTRY_DSN"))
+}
 
 func main() {
 	log.SetFlags(log.Lshortfile)

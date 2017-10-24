@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getsentry/raven-go"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -38,7 +39,7 @@ func newServer(pgConnInfo string) (*server, error) {
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if url := r.FormValue("url"); url != "" {
 		if _, err := s.db.Exec(s.queries["insert.sql"], url); err != nil {
-			log.Print(err)
+			raven.CaptureError(err, nil)
 		}
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
@@ -63,12 +64,12 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *server) runningHandler(w http.ResponseWriter, r *http.Request) {
 	var jobs []Job
 	if err := s.db.Select(&jobs, s.queries["select_running.sql"]); err != nil {
-		log.Print(err)
+		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if err := s.tmpl.ExecuteTemplate(w, "running.html", jobs); err != nil {
-		log.Print(err)
+		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -76,12 +77,12 @@ func (s *server) runningHandler(w http.ResponseWriter, r *http.Request) {
 func (s *server) doneHandler(w http.ResponseWriter, r *http.Request) {
 	var jobs []Job
 	if err := s.db.Select(&jobs, s.queries["select_done.sql"]); err != nil {
-		log.Print(err)
+		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if err := s.tmpl.ExecuteTemplate(w, "done.html", jobs); err != nil {
-		log.Print(err)
+		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -89,12 +90,12 @@ func (s *server) doneHandler(w http.ResponseWriter, r *http.Request) {
 func (s *server) errorsHandler(w http.ResponseWriter, r *http.Request) {
 	var jobs []Job
 	if err := s.db.Select(&jobs, s.queries["select_error.sql"]); err != nil {
-		log.Print(err)
+		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if err := s.tmpl.ExecuteTemplate(w, "errors.html", jobs); err != nil {
-		log.Print(err)
+		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -110,12 +111,12 @@ func (s *server) detailHandler(w http.ResponseWriter, r *http.Request) {
 
 	var job Job
 	if err := s.db.Get(&job, s.queries["select_detail.sql"], id); err != nil {
-		log.Print(err)
+		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if err := s.tmpl.ExecuteTemplate(w, "detail.html", job); err != nil {
-		log.Print(err)
+		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -185,7 +186,7 @@ func (s *server) callbackHandler(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Print(err)
+			raven.CaptureError(err, nil)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -200,7 +201,7 @@ func (s *server) callbackHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if err := xml.Unmarshal(b, &v); err != nil {
-			log.Print(err)
+			raven.CaptureError(err, nil)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -209,7 +210,7 @@ func (s *server) callbackHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if _, err := s.db.Exec(s.queries["insert_feed.sql"], v.Entry.Link.Href, b); err != nil {
-			log.Print(err)
+			raven.CaptureError(err, nil)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
