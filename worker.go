@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	raven "github.com/getsentry/raven-go"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	torpkg "github.com/yansal/tor"
@@ -47,7 +47,7 @@ func newWorker(ctx context.Context, pgConnInfo, s3bucket string) (*worker, error
 
 	l := pq.NewListener(pgConnInfo, time.Second, time.Minute, func(ev pq.ListenerEventType, err error) {
 		if err != nil {
-			log.Println(ev, err)
+			raven.CaptureError(err, nil)
 		}
 	})
 
@@ -85,7 +85,7 @@ func (w *worker) getWork() {
 	for {
 		tx, err := w.db.Beginx()
 		if err != nil {
-			log.Print(err)
+			raven.CaptureError(err, nil)
 			return
 		}
 		var job Job
@@ -93,7 +93,7 @@ func (w *worker) getWork() {
 			rollback(tx)
 			return
 		} else if err != nil {
-			log.Print(err)
+			raven.CaptureError(err, nil)
 			rollback(tx)
 			continue
 		}
@@ -103,7 +103,7 @@ func (w *worker) getWork() {
 
 func rollback(tx *sqlx.Tx) {
 	if dberr := tx.Rollback(); dberr != nil {
-		log.Print(dberr)
+		raven.CaptureError(dberr, nil)
 	}
 }
 func (w *worker) doWork(tx *sqlx.Tx, job Job) {
@@ -121,14 +121,14 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 	defer func() {
 		defer tx.Rollback()
 		if err := tx.Commit(); err != nil {
-			log.Print(err)
+			raven.CaptureError(err, nil)
 		}
 	}()
 
 	tmpdir, err := ioutil.TempDir("", "youtube-ar")
 	if err != nil {
 		if _, dberr := tx.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
-			log.Print(dberr)
+			raven.CaptureError(dberr, nil)
 		}
 		return
 	}
@@ -141,7 +141,7 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 		tor, err = torpkg.New(ctx)
 		if err != nil {
 			if _, dberr := tx.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
-				log.Print(dberr)
+				raven.CaptureError(dberr, nil)
 			}
 			return
 		}
@@ -149,11 +149,11 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 
 		geoip, err := json.Marshal(tor.GeoIP)
 		if err != nil {
-			log.Print(err)
+			raven.CaptureError(err, nil)
 			return
 		}
 		if _, dberr := tx.Exec(w.queries["update_geoip.sql"], geoip, job.ID); dberr != nil {
-			log.Print(dberr)
+			raven.CaptureError(dberr, nil)
 			return
 		}
 	}
@@ -162,12 +162,12 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 	if err != nil {
 		if tor != nil {
 			if _, dberr := tx.Exec(w.queries["update_output_error_torlog.sql"], output, err.Error(), tor.Log(), job.ID); dberr != nil {
-				log.Print(dberr)
+				raven.CaptureError(dberr, nil)
 				return
 			}
 		} else {
 			if _, dberr := tx.Exec(w.queries["update_output_error.sql"], output, err.Error(), job.ID); dberr != nil {
-				log.Print(dberr)
+				raven.CaptureError(dberr, nil)
 				return
 			}
 		}
@@ -179,30 +179,30 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 		var id int
 		job.Retries++
 		if dberr := w.db.Get(&id, w.queries["insert_retries.sql"], job.URL, job.Retries); dberr != nil {
-			log.Print(dberr)
+			raven.CaptureError(dberr, nil)
 		}
 		return
 	}
 
 	if _, dberr := tx.Exec(w.queries["update_output.sql"], output, time.Now(), job.ID); dberr != nil {
-		log.Print(dberr)
+		raven.CaptureError(dberr, nil)
 		return
 	}
 
 	if err := w.uploadAllToS3(tmpdir); err != nil {
 		if _, dberr := tx.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
-			log.Print(dberr)
+			raven.CaptureError(dberr, nil)
 		}
 		return
 	}
 	if _, dberr := tx.Exec(w.queries["update_uploaded_at.sql"], time.Now(), job.ID); dberr != nil {
-		log.Print(dberr)
+		raven.CaptureError(dberr, nil)
 	}
 }
 
 func (w *worker) shutdown() error {
 	if err := w.l.UnlistenAll(); err != nil {
-		log.Print(err)
+		raven.CaptureError(err, nil)
 	}
 
 	w.mu.Lock()
