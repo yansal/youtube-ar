@@ -24,22 +24,17 @@ CREATE UNIQUE INDEX jobs_url_status_running_idx ON jobs (url) WHERE status = 'ru
 
 -- Notify worker after insert
 CREATE FUNCTION
-  f()
+  notify_jobs()
   RETURNS trigger
   AS $$
   BEGIN
-    PERFORM pg_notify('job', json_build_object(
-        'id', NEW.id,
-        'retries', NEW.retries,
-        'url', NEW.url
-    )::text);
-    RETURN NEW;
+    NOTIFY jobs;
+    RETURN NULL;
   END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER tr AFTER INSERT
+CREATE TRIGGER notify_jobs AFTER INSERT
   ON jobs
-  FOR EACH ROW
-  EXECUTE PROCEDURE f();
+  EXECUTE PROCEDURE notify_jobs();
 
 COMMIT;
