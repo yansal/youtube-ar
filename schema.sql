@@ -37,4 +37,6 @@ create trigger notify_jobs after insert
   on jobs
   execute procedure notify_jobs();
 
+create table oauth2_token ( token jsonb not null );
+
 commit;

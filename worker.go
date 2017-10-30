@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	raven "github.com/getsentry/raven-go"
 	"github.com/jmoiron/sqlx"
@@ -26,7 +25,6 @@ import (
 type worker struct {
 	l          *pq.Listener
 	db         *sqlx.DB
-	queries    map[string]string
 	s3uploader *s3manager.Uploader
 	s3bucket   string
 
@@ -35,32 +33,20 @@ type worker struct {
 	running map[int]chan struct{}
 }
 
-func newWorker(ctx context.Context, pgConnInfo, s3bucket string) (*worker, error) {
+func newWorker(ctx context.Context, cfg cfg) (*worker, error) {
 	if err := isInPath("tor", "youtube-dl"); err != nil {
 		return nil, err
 	}
 
-	db := sqlx.MustConnect("postgres", pgConnInfo)
-
-	// TODO: check that s3bucket is present and writable, try to create it if not
-	s3uploader := s3manager.NewUploader(session.Must(session.NewSession()))
-
-	l := pq.NewListener(pgConnInfo, time.Second, time.Minute, func(ev pq.ListenerEventType, err error) {
-		if err != nil {
-			raven.CaptureError(err, nil)
-		}
-	})
-
-	if err := l.Listen("jobs"); err != nil {
+	if err := cfg.pqListener.Listen("jobs"); err != nil {
 		return nil, err
 	}
 
 	return &worker{
-		l:          l,
-		db:         db,
-		queries:    queries,
-		s3uploader: s3uploader,
-		s3bucket:   s3bucket,
+		l:          cfg.pqListener,
+		db:         cfg.db,
+		s3uploader: cfg.s3Uploader,
+		s3bucket:   cfg.s3Bucket,
 		running:    make(map[int]chan struct{}),
 		ctx:        ctx,
 	}, nil
@@ -77,7 +63,7 @@ func isInPath(programs ...string) error {
 
 func (w *worker) loop() {
 	for range w.l.Notify {
-		w.getWork()
+		go w.getWork()
 	}
 }
 
@@ -89,7 +75,7 @@ func (w *worker) getWork() {
 			return
 		}
 		var job Job
-		if err := tx.Get(&job, w.queries["select_running_for_update.sql"]); err == sql.ErrNoRows {
+		if err := tx.Get(&job, queries["select_running_for_update.sql"]); err == sql.ErrNoRows {
 			rollback(tx)
 			return
 		} else if err != nil {
@@ -97,7 +83,7 @@ func (w *worker) getWork() {
 			rollback(tx)
 			continue
 		}
-		go w.doWork(tx, job)
+		w.doWork(tx, job)
 	}
 }
 
@@ -106,6 +92,7 @@ func rollback(tx *sqlx.Tx) {
 		raven.CaptureError(dberr, nil)
 	}
 }
+
 func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 	done := make(chan struct{})
 	w.mu.Lock()
@@ -127,7 +114,7 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 
 	tmpdir, err := ioutil.TempDir("", "youtube-ar")
 	if err != nil {
-		if _, dberr := tx.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
+		if _, dberr := tx.Exec(queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
 			raven.CaptureError(dberr, nil)
 		}
 		return
@@ -140,7 +127,7 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 		defer cancel()
 		tor, err = torpkg.New(ctx)
 		if err != nil {
-			if _, dberr := tx.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
+			if _, dberr := tx.Exec(queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
 				raven.CaptureError(dberr, nil)
 			}
 			return
@@ -152,7 +139,7 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 			raven.CaptureError(err, nil)
 			return
 		}
-		if _, dberr := tx.Exec(w.queries["update_geoip.sql"], geoip, job.ID); dberr != nil {
+		if _, dberr := tx.Exec(queries["update_geoip.sql"], geoip, job.ID); dberr != nil {
 			raven.CaptureError(dberr, nil)
 			return
 		}
@@ -161,12 +148,12 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 	output, err := youtubeDL(w.ctx, job.URL, tmpdir, tor)
 	if err != nil {
 		if tor != nil {
-			if _, dberr := tx.Exec(w.queries["update_output_error_torlog.sql"], output, err.Error(), tor.Log(), job.ID); dberr != nil {
+			if _, dberr := tx.Exec(queries["update_output_error_torlog.sql"], output, err.Error(), tor.Log(), job.ID); dberr != nil {
 				raven.CaptureError(dberr, nil)
 				return
 			}
 		} else {
-			if _, dberr := tx.Exec(w.queries["update_output_error.sql"], output, err.Error(), job.ID); dberr != nil {
+			if _, dberr := tx.Exec(queries["update_output_error.sql"], output, err.Error(), job.ID); dberr != nil {
 				raven.CaptureError(dberr, nil)
 				return
 			}
@@ -178,24 +165,24 @@ func (w *worker) doWork(tx *sqlx.Tx, job Job) {
 		// retry
 		var id int
 		job.Retries++
-		if dberr := w.db.Get(&id, w.queries["insert_retries.sql"], job.URL, job.Retries); dberr != nil {
+		if dberr := w.db.Get(&id, queries["insert_retries.sql"], job.URL, job.Retries); dberr != nil {
 			raven.CaptureError(dberr, nil)
 		}
 		return
 	}
 
-	if _, dberr := tx.Exec(w.queries["update_output.sql"], output, time.Now(), job.ID); dberr != nil {
+	if _, dberr := tx.Exec(queries["update_output.sql"], output, time.Now(), job.ID); dberr != nil {
 		raven.CaptureError(dberr, nil)
 		return
 	}
 
 	if err := w.uploadAllToS3(tmpdir); err != nil {
-		if _, dberr := tx.Exec(w.queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
+		if _, dberr := tx.Exec(queries["update_error.sql"], err.Error(), job.ID); dberr != nil {
 			raven.CaptureError(dberr, nil)
 		}
 		return
 	}
-	if _, dberr := tx.Exec(w.queries["update_uploaded_at.sql"], time.Now(), job.ID); dberr != nil {
+	if _, dberr := tx.Exec(queries["update_uploaded_at.sql"], time.Now(), job.ID); dberr != nil {
 		raven.CaptureError(dberr, nil)
 	}
 }

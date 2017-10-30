@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,21 +12,41 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	raven "github.com/getsentry/raven-go"
+	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"golang.org/x/sync/errgroup"
+	youtube "google.golang.org/api/youtube/v3"
 )
 
 func init() {
+	log.SetFlags(log.Lshortfile)
 	raven.SetDSN(os.Getenv("SENTRY_DSN"))
 }
 
-func main() {
-	log.SetFlags(log.Lshortfile)
+type cfg struct {
+	httpAddr, s3Bucket string
+	oauth2             *oauth2.Config
+	s3Uploader         *s3manager.Uploader
+	db                 *sqlx.DB
+	pqListener         *pq.Listener
+}
 
+func loadConfig() cfg {
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
 		databaseURL = "dbname=youtube-ar sslmode=disable"
 	}
+	db := sqlx.MustConnect("postgres", databaseURL)
+	pqListener := pq.NewListener(databaseURL, time.Second, time.Minute, func(ev pq.ListenerEventType, err error) {
+		if err != nil {
+			raven.CaptureError(err, nil)
+		}
+	})
 
 	httpAddr := "localhost:8080"
 	port := os.Getenv("PORT")
@@ -35,20 +56,45 @@ func main() {
 
 	s3Bucket := os.Getenv("S3_BUCKET")
 	if s3Bucket == "" {
-		fmt.Fprintln(os.Stderr, "S3_BUCKET env must be set")
-		os.Exit(2)
+		log.Fatal("S3_BUCKET env must be set")
+	}
+	// TODO: check that s3bucket is present and writable, try to create it if not
+	s3Uploader := s3manager.NewUploader(session.Must(session.NewSession()))
+
+	oauth2, err := google.ConfigFromJSON([]byte(os.Getenv("GOOGLE_CLIENT_SECRET_JSON")), youtube.YoutubeReadonlyScope)
+	if err != nil {
+		log.Print(err)
+	}
+
+	return cfg{
+		db:         db,
+		httpAddr:   httpAddr,
+		oauth2:     oauth2,
+		pqListener: pqListener,
+		s3Bucket:   s3Bucket,
+		s3Uploader: s3Uploader,
+	}
+}
+
+func main() {
+	cfg := loadConfig()
+
+	flag.Parse()
+	if flag.Arg(0) == "youtubelikes" {
+		youtubelikes(cfg)
+		return
 	}
 
 	g, ctx := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
-		s, err := newServer(databaseURL)
+		s, err := newServer(cfg)
 		if err != nil {
 			return err
 		}
 		http.Handle("/", s)
 
-		srv := &http.Server{Addr: httpAddr}
+		srv := &http.Server{Addr: cfg.httpAddr}
 		cerr := make(chan error)
 		go func() {
 			cerr <- srv.ListenAndServe()
@@ -63,7 +109,7 @@ func main() {
 	})
 
 	g.Go(func() error {
-		w, err := newWorker(ctx, databaseURL, s3Bucket)
+		w, err := newWorker(ctx, cfg)
 		if err != nil {
 			return err
 		}

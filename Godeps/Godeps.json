@@ -4,6 +4,11 @@
 	"GodepVersion": "v79",
 	"Deps": [
 		{
+			"ImportPath": "cloud.google.com/go/compute/metadata",
+			"Comment": "v0.15.0-57-g837004f",
+			"Rev": "837004fdf983457dd0f2db2b4d798886d2a321be"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws",
 			"Comment": "v1.12.4-1-g7f636359",
 			"Rev": "7f63635930405899bdacf8c74f8688c8dcb98ffc"
@@ -183,11 +188,51 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "0a9397675ba34b2845f758fe3cd68828369c6517"
+			"Rev": "c73622c77280266305273cb545f54516ced95b93"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context/ctxhttp",
+			"Rev": "c73622c77280266305273cb545f54516ced95b93"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2",
+			"Rev": "bb50c06baba3d0c76f9d125c0719093e315b5b44"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/google",
+			"Rev": "bb50c06baba3d0c76f9d125c0719093e315b5b44"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/internal",
+			"Rev": "bb50c06baba3d0c76f9d125c0719093e315b5b44"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/jws",
+			"Rev": "bb50c06baba3d0c76f9d125c0719093e315b5b44"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/jwt",
+			"Rev": "bb50c06baba3d0c76f9d125c0719093e315b5b44"
 		},
 		{
 			"ImportPath": "golang.org/x/sync/errgroup",
 			"Rev": "8e0aa688b654ef28caa72506fa5ec8dba9fc7690"
+		},
+		{
+			"ImportPath": "google.golang.org/api/gensupport",
+			"Rev": "6f1bb5bc3019b5a6c3bd4e9812215dc36dcdb350"
+		},
+		{
+			"ImportPath": "google.golang.org/api/googleapi",
+			"Rev": "6f1bb5bc3019b5a6c3bd4e9812215dc36dcdb350"
+		},
+		{
+			"ImportPath": "google.golang.org/api/googleapi/internal/uritemplates",
+			"Rev": "6f1bb5bc3019b5a6c3bd4e9812215dc36dcdb350"
+		},
+		{
+			"ImportPath": "google.golang.org/api/youtube/v3",
+			"Rev": "6f1bb5bc3019b5a6c3bd4e9812215dc36dcdb350"
 		}
 	]
 }

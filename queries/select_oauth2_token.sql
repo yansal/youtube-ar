@@ -1,0 +1,1 @@
+select token from oauth2_token;
