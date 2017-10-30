@@ -4,10 +4,12 @@ package main
 var queries = map[string]string{
 	"insert.sql":                     "insert into jobs(url)\n    values($1)\n    returning id;",
 	"insert_feed.sql":                "insert into jobs(url, feed)\n    values($1, $2)\n    returning id;",
+	"insert_oauth2_token.sql":        "insert into oauth2_token(token) values($1);",
 	"insert_retries.sql":             "insert into jobs(url, retries)\n    values($1, $2)\n    returning id;",
 	"select_detail.sql":              "select\n    url, started_at, error, output, torlog, feed\n    from jobs\n    where id = $1;",
 	"select_done.sql":                "select\n    id, url, started_at, downloaded_at, uploaded_at, output, error, retries, geoip->>'ip' as ip, geoip->>'country_name' as country\n    from jobs\n    where status = 'done'\n    order by started_at desc\n    limit 100;",
 	"select_error.sql":               "select\n    id, url, started_at, error, retries, geoip->>'ip' as ip, geoip->>'country_name' as country\n    from jobs\n    where status = 'error'\n    order by started_at desc\n    limit 100;",
+	"select_oauth2_token.sql":        "select token from oauth2_token;",
 	"select_running.sql":             "select\n    url, started_at, retries, geoip->>'ip' as ip, geoip->>'country_name' as country\n    from jobs\n    where status = 'running'\n    order by started_at desc;",
 	"select_running_for_update.sql":  "select\n    id, url, retries\n    from jobs\n    where status = 'running'\n    order by started_at\n    limit 1\n    for update skip locked;",
 	"update_error.sql":               "update jobs\n    set status = 'error', error = $1\n    where id = $2;",

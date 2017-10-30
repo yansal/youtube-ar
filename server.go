@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"html/template"
@@ -13,32 +15,31 @@ import (
 
 	"github.com/getsentry/raven-go"
 	"github.com/jmoiron/sqlx"
+	"golang.org/x/oauth2"
 )
 
 type server struct {
-	db      *sqlx.DB
-	queries map[string]string
-	tmpl    *template.Template
+	db     *sqlx.DB
+	tmpl   *template.Template
+	oauth2 *oauth2.Config
 }
 
-func newServer(pgConnInfo string) (*server, error) {
-	db := sqlx.MustConnect("postgres", pgConnInfo)
-
+func newServer(cfg cfg) (*server, error) {
 	tmpl, err := loadTemplates()
 	if err != nil {
 		return nil, err
 	}
 
 	return &server{
-		db:      db,
-		queries: queries,
-		tmpl:    tmpl,
+		db:     cfg.db,
+		tmpl:   tmpl,
+		oauth2: cfg.oauth2,
 	}, nil
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if url := r.FormValue("url"); url != "" {
-		if _, err := s.db.Exec(s.queries["insert.sql"], url); err != nil {
+		if _, err := s.db.Exec(queries["insert.sql"], url); err != nil {
 			raven.CaptureError(err, nil)
 		}
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -56,6 +57,10 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.detailHandler(w, r)
 	case p == "/callback/":
 		s.callbackHandler(w, r)
+	case p == "/oauth2":
+		s.oauth2Handler(w, r)
+	case p == "/oauth2callback":
+		s.oauth2callbackHandler(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -63,7 +68,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) runningHandler(w http.ResponseWriter, r *http.Request) {
 	var jobs []Job
-	if err := s.db.Select(&jobs, s.queries["select_running.sql"]); err != nil {
+	if err := s.db.Select(&jobs, queries["select_running.sql"]); err != nil {
 		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -76,7 +81,7 @@ func (s *server) runningHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) doneHandler(w http.ResponseWriter, r *http.Request) {
 	var jobs []Job
-	if err := s.db.Select(&jobs, s.queries["select_done.sql"]); err != nil {
+	if err := s.db.Select(&jobs, queries["select_done.sql"]); err != nil {
 		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -89,7 +94,7 @@ func (s *server) doneHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) errorsHandler(w http.ResponseWriter, r *http.Request) {
 	var jobs []Job
-	if err := s.db.Select(&jobs, s.queries["select_error.sql"]); err != nil {
+	if err := s.db.Select(&jobs, queries["select_error.sql"]); err != nil {
 		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -110,7 +115,7 @@ func (s *server) detailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var job Job
-	if err := s.db.Get(&job, s.queries["select_detail.sql"], id); err != nil {
+	if err := s.db.Get(&job, queries["select_detail.sql"], id); err != nil {
 		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -209,7 +214,7 @@ func (s *server) callbackHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("got deleted-entry. See request body below:\n%s", b)
 			return
 		}
-		if _, err := s.db.Exec(s.queries["insert_feed.sql"], v.Entry.Link.Href, b); err != nil {
+		if _, err := s.db.Exec(queries["insert_feed.sql"], v.Entry.Link.Href, b); err != nil {
 			raven.CaptureError(err, nil)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -217,5 +222,35 @@ func (s *server) callbackHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *server) oauth2Handler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r,
+		s.oauth2.AuthCodeURL("state", oauth2.AccessTypeOffline),
+		http.StatusFound,
+	)
+}
+
+func (s *server) oauth2callbackHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: validate r.FormValue("state")?
+	token, err := s.oauth2.Exchange(context.Background(), r.FormValue("code"))
+	if err != nil {
+		raven.CaptureError(err, nil)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	b, err := json.Marshal(token)
+	if err != nil {
+		raven.CaptureError(err, nil)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := s.db.Exec(queries["insert_oauth2_token.sql"], b); err != nil {
+		raven.CaptureError(err, nil)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
