@@ -28,8 +28,17 @@ func youtubelikes(cfg cfg) {
 		if err != nil {
 			raven.CaptureError(err, nil)
 		}
-		log.Print(ids)
+		for _, id := range ids {
+			if _, err := cfg.db.Exec(queries["insert_youtube_like.sql"], id); err != nil {
+				raven.CaptureError(err, nil)
+			}
+		}
 	}
+	w, err := newWorker(context.Background(), cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w.getWork()
 }
 
 func youtubelikesIDs(client *http.Client) ([]string, error) {

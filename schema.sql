@@ -39,4 +39,24 @@ create trigger notify_jobs after insert
 
 create table oauth2_token ( token jsonb not null );
 
+create table youtube_likes (
+    id char(11) primary key,
+    created_at timestamp with time zone default now() not null,
+    check (length(id) >= 11)
+);
+
+create function insert_into_jobs_after_insert_into_youtube_likes()
+  returns trigger
+  as $$
+  begin
+    insert into jobs(url) values('https://www.youtube.com/watch?v=' || new.id);
+    return null;
+  end;
+$$ language plpgsql;
+
+create trigger insert_into_jobs_after_insert_into_youtube_likes after insert
+  on youtube_likes
+  for each row execute procedure insert_into_jobs_after_insert_into_youtube_likes();
+
+
 commit;
