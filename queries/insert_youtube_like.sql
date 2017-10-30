@@ -1,0 +1,1 @@
+insert into youtube_likes(id) values($1) on conflict do nothing;

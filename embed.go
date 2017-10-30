@@ -6,6 +6,7 @@ var queries = map[string]string{
 	"insert_feed.sql":                "insert into jobs(url, feed)\n    values($1, $2)\n    returning id;",
 	"insert_oauth2_token.sql":        "insert into oauth2_token(token) values($1);",
 	"insert_retries.sql":             "insert into jobs(url, retries)\n    values($1, $2)\n    returning id;",
+	"insert_youtube_like.sql":        "insert into youtube_likes(id) values($1) on conflict do nothing;",
 	"select_detail.sql":              "select\n    url, started_at, error, output, torlog, feed\n    from jobs\n    where id = $1;",
 	"select_done.sql":                "select\n    id, url, started_at, downloaded_at, uploaded_at, output, error, retries, geoip->>'ip' as ip, geoip->>'country_name' as country\n    from jobs\n    where status = 'done'\n    order by started_at desc\n    limit 100;",
 	"select_error.sql":               "select\n    id, url, started_at, error, retries, geoip->>'ip' as ip, geoip->>'country_name' as country\n    from jobs\n    where status = 'error'\n    order by started_at desc\n    limit 100;",
