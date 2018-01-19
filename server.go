@@ -48,11 +48,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path
 	switch {
 	case p == "/":
-		s.runningHandler(w, r)
-	case p == "/done/":
-		s.doneHandler(w, r)
-	case p == "/errors/":
-		s.errorsHandler(w, r)
+		s.listsHandler(w, r)
 	case strings.HasPrefix(p, "/detail/"):
 		s.detailHandler(w, r)
 	case p == "/callback/":
@@ -66,40 +62,34 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) runningHandler(w http.ResponseWriter, r *http.Request) {
-	var jobs []Job
-	if err := s.db.Select(&jobs, queries["select_running.sql"]); err != nil {
+func (s *server) listsHandler(w http.ResponseWriter, r *http.Request) {
+	tx, err := s.db.BeginTxx(r.Context(), nil)
+	if err != nil {
 		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := s.tmpl.ExecuteTemplate(w, "running.html", jobs); err != nil {
-		raven.CaptureError(err, nil)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
 
-func (s *server) doneHandler(w http.ResponseWriter, r *http.Request) {
-	var jobs []Job
-	if err := s.db.Select(&jobs, queries["select_done.sql"]); err != nil {
+	var lists struct{ Running, Done, Errors []Job }
+	if err := tx.Select(&lists.Running, queries["select_running.sql"]); err != nil {
 		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := s.tmpl.ExecuteTemplate(w, "done.html", jobs); err != nil {
-		raven.CaptureError(err, nil)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
 
-func (s *server) errorsHandler(w http.ResponseWriter, r *http.Request) {
-	var jobs []Job
-	if err := s.db.Select(&jobs, queries["select_error.sql"]); err != nil {
+	if err := tx.Select(&lists.Done, queries["select_done.sql"]); err != nil {
 		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := s.tmpl.ExecuteTemplate(w, "errors.html", jobs); err != nil {
+
+	if err := tx.Select(&lists.Errors, queries["select_error.sql"]); err != nil {
+		raven.CaptureError(err, nil)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := s.tmpl.ExecuteTemplate(w, "lists.html", lists); err != nil {
 		raven.CaptureError(err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

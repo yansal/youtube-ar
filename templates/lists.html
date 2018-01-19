@@ -1,0 +1,18 @@
+{{template "head"}}
+
+{{with .Running}}
+<h2>Running</h2>
+{{template "running" .}}
+{{end}}
+
+{{with .Done}}
+<h2>Done</h2>
+{{template "done" .}}
+{{end}}
+
+{{with .Errors}}
+<h2>Errors</h2>
+{{template "errors" .}}
+{{end}}
+
+{{template "foot"}}

@@ -1,0 +1,79 @@
+{{define "head"}}
+<html>
+    <head>
+        <title>youtube-ar</title>
+    </head>
+    <body>
+        <pre><a href="/">youtube-ar</a></pre>
+        <form action="/" method="post">
+            <input placeholder="copy paste a video url" name="url">
+        </form>
+{{end}}
+
+{{define "running"}}
+<table border="1">
+    <tr>
+        <th align="center">URL</th>
+        <th align="center">Started</th>
+        <th align="center">Retries</th>
+        <th align="center">IP</th>
+    </tr>
+    {{range .}}
+    <tr valign="top">
+        <td align="left">{{.URL}}</td>
+        <td align="left">{{ago .StartedAt}}</td>
+        <td align="right">{{.Retries}}</td>
+        <td align="left">{{if .IP}}{{.IP}}{{if .Country}} ({{.Country}}){{end}}{{end}}</td>
+    </tr>
+    {{end}}
+</table>
+{{end}}
+
+{{define "done"}}
+<table border="1">
+    <tr>
+        <th align="center">URL</th>
+        <th align="center">Uploaded</th>
+        <th align="center">Retries</th>
+        <th align="center">IP</th>
+    </tr>
+    {{range .}}
+    <tr valign="top">
+        <td align="left">
+            <a href="/detail/{{.ID}}/">{{.URL}}</a>
+        </td>
+        <td align="left">{{if .UploadedAt}}{{ago .UploadedAt}}{{end}}</td>
+        <td align="right">{{.Retries}}</td>
+        <td align="left">{{if .IP}}{{.IP}}{{if .Country}} ({{.Country}}){{end}}{{end}}</td>
+    </tr>
+    {{end}}
+</table>
+{{end}}
+
+{{define "errors"}}
+<table border="1">
+    <tr>
+        <th align="center">URL</th>
+        <th align="center">Started</th>
+        <th align="center">Retries</th>
+        <th align="center">IP</th>
+        <th align="center">Error</th>
+    </tr>
+    {{range .}}
+    <tr valign="top">
+        <td align="left">
+            <a href="/detail/{{.ID}}/">{{.URL}}</a>
+        </td>
+        <td align="left">{{ago .StartedAt}}</td>
+        <td align="right">{{.Retries}}</td>
+        <td align="left">{{if .IP}}{{.IP}}{{if .Country}} ({{.Country}}){{end}}{{end}}</td>
+        <td align="left">{{.Error}}</td>
+    </tr>
+    {{end}}
+</table>
+{{end}}
+
+{{define "foot"}}
+    </body>
+</html>
+{{end}}

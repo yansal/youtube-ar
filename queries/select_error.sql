@@ -3,4 +3,4 @@ select
     from jobs
     where status = 'error'
     order by started_at desc
-    limit 100;
+    limit 25;
