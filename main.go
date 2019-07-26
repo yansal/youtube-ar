@@ -1,0 +1,46 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/yansal/youtube-ar/cmd"
+)
+
+func usage() string {
+	// TODO: generate automatically from commands in package cmd
+	return `usage: youtube-ar [create-url|create-urls-from-youtube-playlist|download-url|list-logs|list-urls|retry-last-failed|server|worker]`
+}
+
+func main() {
+	ctx := context.Background()
+	if len(os.Args) == 1 {
+		if err := cmd.Server(ctx, os.Args[1:]); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	cmds := map[string]cmd.Cmd{
+		"create-url":                        cmd.CreateURL,
+		"create-urls-from-youtube-playlist": cmd.CreateURLsFromYoutubePlaylist,
+		"download-url":                      cmd.DownloadURL,
+		"list-logs":                         cmd.ListLogs,
+		"list-urls":                         cmd.ListURLs,
+		"retry-last-failed":                 cmd.RetryLastFailed,
+		"server":                            cmd.Server,
+		"worker":                            cmd.Worker,
+	}
+
+	cmd, ok := cmds[os.Args[1]]
+	if !ok {
+		fmt.Printf("error: unknown cmd %s\n", os.Args[1])
+		fmt.Println(usage())
+		os.Exit(2)
+	}
+
+	if err := cmd(ctx, os.Args[2:]); err != nil {
+		log.Fatal(err)
+	}
+}
