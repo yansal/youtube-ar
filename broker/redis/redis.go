@@ -39,7 +39,6 @@ func New(logger log.Logger) (*redis.Client, error) {
 			} else {
 				msg = cmderString(cmd)
 			}
-			// TODO: get context from cmd
 			logger.Log(context.Background(), "redis: "+msg, fields...)
 
 			return err

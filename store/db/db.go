@@ -25,7 +25,7 @@ func New(logger log.Logger) (*sql.DB, error) {
 
 	connector := &sqldriver.Connector{
 		Connector: pqconnector,
-		QueryContextFunc: func(query string, args []driver.NamedValue, duration time.Duration, err error) {
+		QueryContextFunc: func(ctx context.Context, query string, args []driver.NamedValue, duration time.Duration, err error) {
 			fields := []log.Field{
 				log.String("query", query),
 				log.Stringer("duration", duration),
@@ -38,8 +38,7 @@ func New(logger log.Logger) (*sql.DB, error) {
 			if err != nil {
 				fields = append(fields, log.Error("error", err))
 			}
-			// TODO: get ctx from QueryContextFunc
-			logger.Log(context.Background(), "sql query", fields...)
+			logger.Log(ctx, "sql query", fields...)
 		},
 	}
 	return sql.OpenDB(connector), nil

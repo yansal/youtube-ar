@@ -7,6 +7,6 @@ require (
 	github.com/go-redis/redis v6.15.3+incompatible
 	github.com/lib/pq v1.2.0
 	github.com/stretchr/testify v1.3.0 // indirect
-	github.com/yansal/sqldriver v0.0.0-20190610174223-f0fa25e9e55a
+	github.com/yansal/sqldriver v0.0.0-20190804194223-fece0ffba949
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
 )
