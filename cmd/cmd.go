@@ -5,8 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"net/http"
-	"os"
 
 	"github.com/yansal/youtube-ar/broker"
 	"github.com/yansal/youtube-ar/broker/redis"
@@ -15,12 +13,8 @@ import (
 	"github.com/yansal/youtube-ar/manager"
 	"github.com/yansal/youtube-ar/model"
 	"github.com/yansal/youtube-ar/payload"
-	"github.com/yansal/youtube-ar/server"
-	"github.com/yansal/youtube-ar/storage"
 	"github.com/yansal/youtube-ar/store"
 	"github.com/yansal/youtube-ar/store/db"
-	"github.com/yansal/youtube-ar/worker"
-	"github.com/yansal/youtube-ar/worker/handler"
 	"github.com/yansal/youtube-ar/youtube"
 )
 
@@ -193,52 +187,4 @@ func RetryLastFailed(ctx context.Context, args []string) error {
 	store := store.New(db)
 	m := manager.New(broker, nil, nil, store, nil)
 	return m.RetryLastFailed(ctx)
-}
-
-// Server is the server cmd.
-func Server(ctx context.Context, args []string) error {
-	log := log.New()
-	redis, err := redis.New(log)
-	if err != nil {
-		return err
-	}
-	broker := broker.New(redis, log)
-	db, err := db.New(log)
-	if err != nil {
-		return err
-	}
-	store := store.New(db)
-	m := manager.New(broker, nil, nil, store, nil)
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	return http.ListenAndServe(":"+port, server.Handler(m, log))
-}
-
-// Worker is the worker cmd.
-func Worker(ctx context.Context, args []string) error {
-	log := log.New()
-	redis, err := redis.New(log)
-	if err != nil {
-		return err
-	}
-	b := broker.New(redis, log)
-
-	storage, err := storage.New()
-	if err != nil {
-		return err
-	}
-	db, err := db.New(log)
-	if err != nil {
-		return err
-	}
-	store := store.New(db)
-	m := manager.New(nil, downloader.New(), storage, store, nil)
-
-	w := worker.New(b, map[string]broker.Handler{
-		"url-created": handler.URLCreated(m),
-	})
-	return w.Listen(ctx)
 }

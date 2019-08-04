@@ -1,20 +1,12 @@
-package server
+package middleware
 
 import (
 	"net/http"
 
 	"github.com/yansal/youtube-ar/log"
-	"github.com/yansal/youtube-ar/manager"
 )
 
-// Handler is the server handler.
-func Handler(m manager.Manager, log log.Logger) http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle("/api/", &apiHandler{manager: m})
-	return logMiddleware(mux, log)
-}
-
-func logMiddleware(h http.Handler, l log.Logger) http.Handler {
+func Log(h http.Handler, l log.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw := &responseWriter{ResponseWriter: w}
 		defer func() {

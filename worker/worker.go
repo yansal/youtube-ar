@@ -7,22 +7,19 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Worker is the worker interface.
-type Worker interface {
-	Listen(context.Context) error
-}
-
-// New returns a new worker.
-func New(b broker.Broker, h map[string]broker.Handler) Worker {
-	return &worker{broker: b, handlers: h}
-}
-
-type worker struct {
+// Worker is a worker implementation.
+type Worker struct {
 	broker   broker.Broker
 	handlers map[string]broker.Handler
 }
 
-func (w *worker) Listen(ctx context.Context) error {
+// New returns a new worker.
+func New(b broker.Broker, h map[string]broker.Handler) *Worker {
+	return &Worker{broker: b, handlers: h}
+}
+
+// Listen starts a goroutine for each handler.
+func (w *Worker) Listen(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 	for queue, handler := range w.handlers {
 		queue := queue
