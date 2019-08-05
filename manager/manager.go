@@ -123,10 +123,7 @@ func (m *manager) processURL(ctx context.Context, url *model.URL) (string, error
 	for event := range stream {
 		switch event.Type {
 		case downloader.Log:
-			if err := m.store.CreateLog(ctx, &model.Log{
-				URLID: url.ID,
-				Log:   event.Log,
-			}); err != nil {
+			if err := m.store.CreateLog(ctx, url.ID, &model.Log{Log: event.Log}); err != nil {
 				// TODO: log err
 			}
 		case downloader.Failure:

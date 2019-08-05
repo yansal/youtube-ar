@@ -12,7 +12,7 @@ type Store interface {
 	CreateURL(context.Context, *model.URL) error
 	LockURL(context.Context, *model.URL) error
 	UnlockURL(context.Context, *model.URL) error
-	CreateLog(context.Context, *model.Log) error
+	CreateLog(context.Context, int64, *model.Log) error
 	CreateYoutubeVideo(context.Context, *model.YoutubeVideo) error
 
 	GetURL(context.Context, int64) (*model.URL, error)
@@ -47,10 +47,10 @@ func (s *store) UnlockURL(ctx context.Context, url *model.URL) error {
 	return s.db.QueryRowContext(ctx, query, args...).Scan(&url.CreatedAt, &url.UpdatedAt)
 }
 
-func (s *store) CreateLog(ctx context.Context, log *model.Log) error {
-	query := `insert into logs(log, url_id) values($1, $2) returning id, created_at`
-	args := []interface{}{log.Log, log.URLID}
-	return s.db.QueryRowContext(ctx, query, args...).Scan(&log.ID, &log.CreatedAt)
+func (s *store) CreateLog(ctx context.Context, urlID int64, log *model.Log) error {
+	query := `update urls set logs = array_append(logs, $1) where id = $2`
+	args := []interface{}{log.Log, urlID}
+	return s.db.QueryRowContext(ctx, query, args...).Scan()
 }
 
 func (s *store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
@@ -101,18 +101,9 @@ func (s *store) ListURLs(ctx context.Context, page *model.Page) ([]model.URL, er
 }
 
 func (s *store) ListLogs(ctx context.Context, urlID int64, page *model.Page) ([]model.Log, error) {
-	var (
-		query string
-		args  []interface{}
-	)
-	if page.Cursor == 0 {
-		query = `select id, url_id, log, created_at from logs where url_id = $1 order by id asc limit $2`
-		args = []interface{}{urlID, page.Limit}
-	} else {
-		query = `select id, url_id, log, created_at from logs where url_id = $1 and id > $2 order by id asc limit $3`
-		args = []interface{}{urlID, page.Cursor, page.Limit}
-	}
-
+	query := `select unnest(logs[$1:$2]) from urls where id = $3`
+	cursor := page.Cursor + 1
+	args := []interface{}{cursor, cursor + page.Limit - 1, urlID}
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -120,7 +111,7 @@ func (s *store) ListLogs(ctx context.Context, urlID int64, page *model.Page) ([]
 	var logs []model.Log
 	for rows.Next() {
 		var log model.Log
-		if err := rows.Scan(&log.ID, &log.URLID, &log.Log, &log.CreatedAt); err != nil {
+		if err := rows.Scan(&log.Log); err != nil {
 			return nil, err
 		}
 		logs = append(logs, log)

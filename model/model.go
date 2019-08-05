@@ -19,10 +19,7 @@ type URL struct {
 
 // Log is the log model.
 type Log struct {
-	ID        int64
-	URLID     int64
-	Log       string
-	CreatedAt time.Time
+	Log string
 }
 
 // YoutubeVideo is the youtube video model.

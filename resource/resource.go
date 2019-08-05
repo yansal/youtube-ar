@@ -47,18 +47,12 @@ func NewURLs(urls []model.URL) []URL {
 
 // Log is the log resource.
 type Log struct {
-	ID        int64     `json:"id,omitempty"`
-	Log       string    `json:"log,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
+	Log string `json:"log,omitempty"`
 }
 
 // NewLog returns a new Log.
 func NewLog(log *model.Log) *Log {
-	resource := Log{
-		ID:        log.ID,
-		Log:       log.Log,
-		CreatedAt: log.CreatedAt,
-	}
+	resource := Log{Log: log.Log}
 	return &resource
 }
 
