@@ -30,17 +30,18 @@ func Server(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	manager := manager.New(broker, nil, nil, store, nil)
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	manager := manager.NewServer(broker, store)
 
 	mux := server.NewMux()
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/api/urls$`), handler.ListURLs(manager))
 	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/api/urls$`), handler.CreateURL(manager))
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/api/urls/(\d+)/logs$`), handler.ListLogs(manager))
 
-	return http.ListenAndServe(":"+port, middleware.Log(mux, log))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	handler := middleware.Log(mux, log)
+	return http.ListenAndServe(":"+port, handler)
 }

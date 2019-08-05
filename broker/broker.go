@@ -8,31 +8,24 @@ import (
 	"github.com/yansal/youtube-ar/log"
 )
 
-// Broker is the broker interface.
-type Broker interface {
-	Send(ctx context.Context, queue string, payload string) error
-	Receive(ctx context.Context, queue string, handler Handler) error
-	PopLastFailed(ctx context.Context, queue string) (string, error)
+// New returns a new Broker.
+func New(r *redis.Client, log log.Logger) *Broker {
+	return &Broker{redis: r, log: log}
 }
 
-// Handler is a broker handler.
-type Handler func(ctx context.Context, payload string) error
-
-// New returns a new broker.
-func New(r *redis.Client, log log.Logger) Broker {
-	return &broker{redis: r, log: log}
-}
-
-type broker struct {
+// Broker is a broker.
+type Broker struct {
 	log   log.Logger
 	redis *redis.Client
 }
 
-func (b *broker) Send(ctx context.Context, queue string, payload string) error {
+// Send sends payload to queue.
+func (b *Broker) Send(ctx context.Context, queue string, payload string) error {
 	return b.redis.LPush(queue, payload).Err()
 }
 
-func (b *broker) Receive(ctx context.Context, queue string, handler Handler) error {
+// Receive pops next item from queue and calls handler.
+func (b *Broker) Receive(ctx context.Context, queue string, handler Handler) error {
 	tmp := queue + ":tmp"
 	payload, err := b.redis.BRPopLPush(queue, tmp, 0).Result()
 	if err == redis.Nil {
@@ -66,6 +59,10 @@ func (b *broker) Receive(ctx context.Context, queue string, handler Handler) err
 	return b.Send(ctx, failed, payload)
 }
 
-func (b *broker) PopLastFailed(ctx context.Context, queue string) (string, error) {
+// Handler is a broker handler.
+type Handler func(ctx context.Context, payload string) error
+
+// PopNextFailed pops next element from failed queue.
+func (b *Broker) PopNextFailed(ctx context.Context, queue string) (string, error) {
 	return b.redis.RPop(queue + ":failed").Result()
 }

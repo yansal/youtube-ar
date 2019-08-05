@@ -13,6 +13,7 @@ import (
 	"github.com/yansal/youtube-ar/manager"
 	"github.com/yansal/youtube-ar/model"
 	"github.com/yansal/youtube-ar/payload"
+	"github.com/yansal/youtube-ar/service"
 	"github.com/yansal/youtube-ar/store"
 	"github.com/yansal/youtube-ar/store/db"
 	"github.com/yansal/youtube-ar/youtube"
@@ -44,7 +45,7 @@ func CreateURL(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	m := manager.New(broker, nil, nil, store, nil)
+	m := manager.NewServer(broker, store)
 
 	p := payload.URL{URL: url}
 	if err := p.Validate(); err != nil {
@@ -57,9 +58,9 @@ func CreateURL(ctx context.Context, args []string) error {
 	return nil
 }
 
-// CreateURLsFromYoutubePlaylist is the create-url-from-playlist cmd.
-func CreateURLsFromYoutubePlaylist(ctx context.Context, args []string) error {
-	fs := flag.NewFlagSet("create-urls-from-youtube-playlist", flag.ExitOnError)
+// CreateURLsFromPlaylist is the create-urls-from-playlist cmd.
+func CreateURLsFromPlaylist(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("create-urls-from-playlist", flag.ExitOnError)
 	var playlist string
 	fs.StringVar(&playlist, "playlist", "", "youtube playlist")
 	if err := fs.Parse(args); err != nil {
@@ -80,9 +81,10 @@ func CreateURLsFromYoutubePlaylist(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	m := manager.New(broker, nil, nil, store, youtube.New(log))
+	manager := manager.NewServer(broker, store)
+	playlistLoader := service.NewPlaylistLoader(manager, store, youtube.New(log))
 
-	return m.CreateURLsFromYoutube(ctx, playlist)
+	return playlistLoader.CreateURLsFromYoutube(ctx, playlist)
 }
 
 // DownloadURL is the download-url cmd.
@@ -132,7 +134,7 @@ func ListLogs(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	m := manager.New(nil, nil, nil, store, nil)
+	m := manager.NewServer(nil, store)
 
 	logs, err := m.ListLogs(ctx, urlID, &model.Page{Cursor: cursor, Limit: limit})
 	if err != nil {
@@ -160,7 +162,7 @@ func ListURLs(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	m := manager.New(nil, nil, nil, store, nil)
+	m := manager.NewServer(nil, store)
 
 	urls, err := m.ListURLs(ctx, &model.Page{Cursor: cursor, Limit: limit})
 	if err != nil {
@@ -172,8 +174,8 @@ func ListURLs(ctx context.Context, args []string) error {
 	return nil
 }
 
-// RetryLastFailed is the retry-last-failed cmd.
-func RetryLastFailed(ctx context.Context, args []string) error {
+// RetryNext is the retry-next cmd.
+func RetryNext(ctx context.Context, args []string) error {
 	log := log.New()
 	redis, err := redis.New(log)
 	if err != nil {
@@ -185,6 +187,8 @@ func RetryLastFailed(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	m := manager.New(broker, nil, nil, store, nil)
-	return m.RetryLastFailed(ctx)
+	manager := manager.NewServer(broker, store)
+
+	retrier := service.NewRetrier(broker, manager, store)
+	return retrier.RetryNext(ctx)
 }

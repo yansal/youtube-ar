@@ -10,30 +10,27 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-// Storage is the storage interface.
-type Storage interface {
-	Upload(context.Context, string) (string, error)
-}
-
 // New returns a new storage.
-func New() (Storage, error) {
+func New() (*Storage, error) {
 	s, err := session.NewSession()
 	if err != nil {
 		return nil, err
 	}
 
-	return &storage{
+	return &Storage{
 		bucket: os.Getenv("S3_BUCKET"),
 		s3:     s3.New(s),
 	}, nil
 }
 
-type storage struct {
+// Storage is a storage.
+type Storage struct {
 	bucket string
 	s3     *s3.S3
 }
 
-func (s *storage) Upload(ctx context.Context, path string) (string, error) {
+// Upload uploads file located at path.
+func (s *Storage) Upload(ctx context.Context, path string) (string, error) {
 	// TODO: add logs
 
 	f, err := os.Open(path)

@@ -9,12 +9,17 @@ import (
 
 // Worker is a worker implementation.
 type Worker struct {
-	broker   broker.Broker
+	broker   Broker
 	handlers map[string]broker.Handler
 }
 
-// New returns a new worker.
-func New(b broker.Broker, h map[string]broker.Handler) *Worker {
+// Broker is the broker interface required by Worker.
+type Broker interface {
+	Receive(ctx context.Context, queue string, handler broker.Handler) error
+}
+
+// New returns a new Worker.
+func New(b Broker, h map[string]broker.Handler) *Worker {
 	return &Worker{broker: b, handlers: h}
 }
 

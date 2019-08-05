@@ -11,37 +11,16 @@ import (
 	"sync"
 )
 
-// Downloader is the downloader interface.
-type Downloader interface {
-	Download(context.Context, string) <-chan Event
-}
-
-// Event is a downloader event.
-type Event struct {
-	Type EventType
-	Log  string
-	Err  error
-	Path string
-}
-
-// EventType is an event type.
-type EventType int
-
-// EventType values.
-const (
-	Log EventType = iota
-	Failure
-	Success
-)
-
 // New returns a new Downloader.
-func New() Downloader {
-	return &downloader{}
+func New() *Downloader {
+	return &Downloader{}
 }
 
-type downloader struct{}
+// Downloader is a downloader.
+type Downloader struct{}
 
-func (p *downloader) Download(ctx context.Context, url string) <-chan Event {
+// Download downloads url and returns a stream of Event.
+func (p *Downloader) Download(ctx context.Context, url string) <-chan Event {
 	stream := make(chan Event)
 	go func() {
 		defer close(stream)
@@ -103,3 +82,21 @@ func (p *downloader) Download(ctx context.Context, url string) <-chan Event {
 	}()
 	return stream
 }
+
+// Event is a downloader event.
+type Event struct {
+	Type EventType
+	Log  string
+	Err  error
+	Path string
+}
+
+// EventType is an event type.
+type EventType int
+
+// EventType values.
+const (
+	Log EventType = iota
+	Failure
+	Success
+)

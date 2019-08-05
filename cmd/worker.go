@@ -33,7 +33,7 @@ func Worker(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	m := manager.New(nil, downloader.New(), storage, store, nil)
+	m := manager.NewWorker(downloader.New(), storage, store)
 
 	w := worker.New(b, map[string]broker.Handler{
 		"url-created": handler.URLCreated(m),

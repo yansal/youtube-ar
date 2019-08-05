@@ -11,7 +11,7 @@ import (
 
 func usage() string {
 	// TODO: generate automatically from commands in package cmd
-	return `usage: youtube-ar [create-url|create-urls-from-youtube-playlist|download-url|list-logs|list-urls|retry-last-failed|server|worker]`
+	return `usage: youtube-ar [create-url|create-urls-from-playlist|download-url|list-logs|list-urls|retry-next|server|worker]`
 }
 
 func main() {
@@ -23,14 +23,14 @@ func main() {
 	}
 
 	cmds := map[string]cmd.Cmd{
-		"create-url":                        cmd.CreateURL,
-		"create-urls-from-youtube-playlist": cmd.CreateURLsFromYoutubePlaylist,
-		"download-url":                      cmd.DownloadURL,
-		"list-logs":                         cmd.ListLogs,
-		"list-urls":                         cmd.ListURLs,
-		"retry-last-failed":                 cmd.RetryLastFailed,
-		"server":                            cmd.Server,
-		"worker":                            cmd.Worker,
+		"create-url":                cmd.CreateURL,
+		"create-urls-from-playlist": cmd.CreateURLsFromPlaylist,
+		"download-url":              cmd.DownloadURL,
+		"list-logs":                 cmd.ListLogs,
+		"list-urls":                 cmd.ListURLs,
+		"retry-next":                cmd.RetryNext,
+		"server":                    cmd.Server,
+		"worker":                    cmd.Worker,
 	}
 
 	cmd, ok := cmds[os.Args[1]]
