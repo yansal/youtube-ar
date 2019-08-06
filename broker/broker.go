@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -9,14 +10,22 @@ import (
 )
 
 // New returns a new Broker.
-func New(r *redis.Client, log log.Logger) *Broker {
+func New(r Redis, log log.Logger) *Broker {
 	return &Broker{redis: r, log: log}
+}
+
+// Redis is the redis interface required by Broker.
+type Redis interface {
+	LPush(key string, values ...interface{}) *redis.IntCmd
+	BRPopLPush(source, destination string, timeout time.Duration) *redis.StringCmd
+	LRem(key string, count int64, value interface{}) *redis.IntCmd
+	RPop(key string) *redis.StringCmd
 }
 
 // Broker is a broker.
 type Broker struct {
 	log   log.Logger
-	redis *redis.Client
+	redis Redis
 }
 
 // Send sends payload to queue.
@@ -26,6 +35,7 @@ func (b *Broker) Send(ctx context.Context, queue string, payload string) error {
 
 // Receive pops next item from queue and calls handler.
 func (b *Broker) Receive(ctx context.Context, queue string, handler Handler) error {
+	fields := []log.Field{log.String("queue", queue)}
 	tmp := queue + ":tmp"
 	payload, err := b.redis.BRPopLPush(queue, tmp, 0).Result()
 	if err == redis.Nil {
@@ -34,10 +44,7 @@ func (b *Broker) Receive(ctx context.Context, queue string, handler Handler) err
 		return err
 	}
 
-	fields := []log.Field{
-		log.String("queue", queue),
-		log.String("payload", payload),
-	}
+	fields = append(fields, log.String("payload", payload))
 
 	defer func() {
 		if err := b.redis.LRem(tmp, 1, payload).Err(); err != nil {
@@ -45,19 +52,30 @@ func (b *Broker) Receive(ctx context.Context, queue string, handler Handler) err
 		}
 	}()
 
-	start := time.Now()
-	err = handler(ctx, payload)
-	fields = append(fields, log.Stringer("duration", time.Since(start)))
-	if err == nil {
-		b.log.Log(ctx, queue+": "+payload, fields...)
-		return nil
-	}
+	var (
+		start = time.Now()
+		herr  error
+	)
+	defer func() {
+		fields = append(fields, log.Stringer("duration", time.Since(start)))
+		if r := recover(); r != nil {
+			herr = fmt.Errorf("%s", r)
+		}
+		if herr == nil {
+			b.log.Log(ctx, queue+": "+payload, fields...)
+			return
+		}
 
-	// TOD: log and send to failed queue in a deferred statement, so that we don't lose events during panics
-	b.log.Log(ctx, err.Error(), fields...)
+		b.log.Log(ctx, herr.Error(), fields...)
 
-	failed := queue + ":failed"
-	return b.Send(ctx, failed, payload)
+		failed := queue + ":failed"
+		if err := b.Send(ctx, failed, payload); err != nil {
+			b.log.Log(ctx, err.Error())
+		}
+	}()
+
+	herr = handler(ctx, payload)
+	return nil
 }
 
 // Handler is a broker handler.

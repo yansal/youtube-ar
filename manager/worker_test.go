@@ -35,13 +35,11 @@ func (s storageMock) Upload(ctx context.Context, url string) (string, error) {
 }
 
 type storeMock struct {
-	lockURLFunc   func(context.Context, *model.URL) error
 	unlockURLFunc func(context.Context, *model.URL) error
-	createLogFunc func(context.Context, int64, *model.Log) error
 }
 
 func (s storeMock) LockURL(ctx context.Context, url *model.URL) error {
-	return s.lockURLFunc(ctx, url)
+	return nil
 }
 
 func (s storeMock) UnlockURL(ctx context.Context, url *model.URL) error {
@@ -49,7 +47,7 @@ func (s storeMock) UnlockURL(ctx context.Context, url *model.URL) error {
 }
 
 func (s storeMock) CreateLog(ctx context.Context, urlID int64, log *model.Log) error {
-	return s.createLogFunc(ctx, urlID, log)
+	return nil
 }
 
 func TestProcessURLFailure(t *testing.T) {
@@ -69,7 +67,6 @@ func TestProcessURLFailure(t *testing.T) {
 			},
 		},
 		store: storeMock{
-			lockURLFunc: func(context.Context, *model.URL) error { return nil },
 			unlockURLFunc: func(ctx context.Context, url *model.URL) error {
 				assertf(t, url.Status == "failure",
 					`expected status to be "failure", got %q`, url.Status,
@@ -116,7 +113,6 @@ func TestProcessURLSuccess(t *testing.T) {
 			},
 		},
 		store: storeMock{
-			lockURLFunc: func(context.Context, *model.URL) error { return nil },
 			unlockURLFunc: func(ctx context.Context, url *model.URL) error {
 				assertf(t, url.Status == "success",
 					`expected status to be "success", got %q`, url.Status,
@@ -148,7 +144,6 @@ func TestProcessURLPanic(t *testing.T) {
 			},
 		},
 		store: storeMock{
-			lockURLFunc: func(context.Context, *model.URL) error { return nil },
 			unlockURLFunc: func(ctx context.Context, url *model.URL) error {
 				unlocked = true
 				assertf(t, url.Status == "failure",
