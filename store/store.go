@@ -48,12 +48,12 @@ func (s *Store) CreateLog(ctx context.Context, urlID int64, log *model.Log) erro
 // GetURL gets the url with id.
 func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 	var (
-		query = `select id, url, created_at, updated_at, status, error, file, retries from urls where id = $1`
+		query = `select id, url, created_at, updated_at, status, error, file, retries, logs from urls where id = $1`
 		args  = []interface{}{id}
 		url   model.URL
 	)
 	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
-		&url.ID, &url.URL, &url.CreatedAt, &url.UpdatedAt, &url.Status, &url.Error, &url.File, &url.Retries,
+		&url.ID, &url.URL, &url.CreatedAt, &url.UpdatedAt, &url.Status, &url.Error, &url.File, &url.Retries, &url.Logs,
 	); err != nil {
 		return nil, err
 	}

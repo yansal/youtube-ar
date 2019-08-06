@@ -37,7 +37,7 @@ func NewRetrier(broker RetrierBroker, manager RetrierManager, store RetrierStore
 	return &Retrier{broker: broker, manager: manager, store: store}
 }
 
-// RetryNext retries the next failed event.
+// RetryNext retries the next failed url.
 func (s *Retrier) RetryNext(ctx context.Context) error {
 	// TODO: use an atomic rpoplpush to ensure we don't lose any failed event?
 	b, err := s.broker.PopNextFailed(ctx, "url-created")
@@ -51,21 +51,26 @@ func (s *Retrier) RetryNext(ctx context.Context) error {
 	if err := json.Unmarshal([]byte(b), &e); err != nil {
 		return err
 	}
-	last, err := s.store.GetURL(ctx, e.ID)
+	failed, err := s.store.GetURL(ctx, e.ID)
 	if err != nil {
 		return err
 	}
-	if last.Status != "failed" {
-		// TODO: log that there is a problem, we should never retry an event with status != "failed"
+
+	return s.retry(ctx, failed)
+}
+
+func (s *Retrier) retry(ctx context.Context, failed *model.URL) error {
+	if !failed.ShouldRetry() {
+		return nil
 	}
-	if last.Retries.Int64 >= 5 {
-		// TODO: log that we won't retry because we reached the maximum number of retries
+
+	if failed.Retries.Int64 >= 5 {
 		return nil
 	}
 
 	url := payload.URL{
-		URL:     last.URL,
-		Retries: last.Retries.Int64 + 1,
+		URL:     failed.URL,
+		Retries: failed.Retries.Int64 + 1,
 	}
 	if _, err := s.manager.CreateURL(ctx, url); err != nil {
 		return err
