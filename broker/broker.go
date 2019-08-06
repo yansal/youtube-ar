@@ -53,6 +53,7 @@ func (b *Broker) Receive(ctx context.Context, queue string, handler Handler) err
 		return nil
 	}
 
+	// TOD: log and send to failed queue in a deferred statement, so that we don't lose events during panics
 	b.log.Log(ctx, err.Error(), fields...)
 
 	failed := queue + ":failed"

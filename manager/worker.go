@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -42,28 +43,39 @@ func NewWorker(downloader Downloader, storage Storage, store StoreWorker) *Worke
 
 // ProcessURL processes e.
 func (m *Worker) ProcessURL(ctx context.Context, e event.URL) error {
-	// TODO: process in db transaction?
-
 	url := &model.URL{ID: e.ID, Status: "processing"}
 	if err := m.store.LockURL(ctx, url); err != nil {
 		return err
 	}
 
-	// TODO: defer unlock, instead of having two code paths
+	var (
+		perr error
+		file string
+	)
+	defer func() {
+		r := recover()
+		if r != nil {
+			perr = fmt.Errorf("%s", r)
+		}
+		if perr != nil {
+			url.Error = sql.NullString{Valid: true, String: perr.Error()}
+			url.Status = "failure"
+		} else {
+			url.File = sql.NullString{Valid: true, String: file}
+			url.Status = "success"
+		}
 
-	file, err := m.processURL(ctx, url)
-	if err != nil {
-		url.Error = sql.NullString{Valid: true, String: err.Error()}
-		url.Status = "failure"
 		if err := m.store.UnlockURL(ctx, url); err != nil {
 			// TODO: log err
 		}
-		return err
-	}
 
-	url.File = sql.NullString{Valid: true, String: file}
-	url.Status = "success"
-	return m.store.UnlockURL(ctx, url)
+		if r != nil {
+			panic(r)
+		}
+	}()
+
+	file, perr = m.processURL(ctx, url)
+	return perr
 }
 
 func (m *Worker) processURL(ctx context.Context, url *model.URL) (string, error) {
