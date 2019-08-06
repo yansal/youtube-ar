@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/yansal/youtube-ar/cmd"
@@ -18,7 +17,8 @@ func main() {
 	ctx := context.Background()
 	if len(os.Args) == 1 {
 		if err := cmd.Server(ctx, os.Args[1:]); err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 	}
 
@@ -41,6 +41,7 @@ func main() {
 	}
 
 	if err := cmd(ctx, os.Args[2:]); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
