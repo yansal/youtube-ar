@@ -8,6 +8,7 @@ import (
 	"github.com/yansal/youtube-ar/downloader"
 	"github.com/yansal/youtube-ar/log"
 	"github.com/yansal/youtube-ar/manager"
+	"github.com/yansal/youtube-ar/processor"
 	"github.com/yansal/youtube-ar/storage"
 	"github.com/yansal/youtube-ar/store"
 	"github.com/yansal/youtube-ar/store/db"
@@ -33,7 +34,8 @@ func Worker(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	m := manager.NewWorker(downloader.New(), storage, store)
+	processor := processor.New(downloader.New(), storage, store)
+	m := manager.NewWorker(processor, store)
 
 	w := worker.New(b, map[string]broker.Handler{
 		"url-created": handler.URLCreated(m),

@@ -29,8 +29,8 @@ type Storage struct {
 	s3     *s3.S3
 }
 
-// Upload uploads file located at path.
-func (s *Storage) Upload(ctx context.Context, path string) (string, error) {
+// Save saves file located at path.
+func (s *Storage) Save(ctx context.Context, path string) (string, error) {
 	// TODO: add logs
 
 	f, err := os.Open(path)

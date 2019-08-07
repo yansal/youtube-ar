@@ -6,7 +6,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yansal/youtube-ar/downloader"
 	"github.com/yansal/youtube-ar/event"
 	"github.com/yansal/youtube-ar/model"
 )
@@ -18,20 +17,12 @@ func assertf(t *testing.T, ok bool, msg string, args ...interface{}) {
 	}
 }
 
-type downloaderMock struct {
-	downloadFunc func(context.Context, string) <-chan downloader.Event
+type processorMock struct {
+	processFunc func(context.Context, *model.URL) (string, error)
 }
 
-func (d downloaderMock) Download(ctx context.Context, url string) <-chan downloader.Event {
-	return d.downloadFunc(ctx, url)
-}
-
-type storageMock struct {
-	uploadFunc func(context.Context, string) (string, error)
-}
-
-func (s storageMock) Upload(ctx context.Context, url string) (string, error) {
-	return s.uploadFunc(ctx, url)
+func (p processorMock) Process(ctx context.Context, url *model.URL) (string, error) {
+	return p.processFunc(ctx, url)
 }
 
 type storeMock struct {
@@ -46,24 +37,12 @@ func (s storeMock) UnlockURL(ctx context.Context, url *model.URL) error {
 	return s.unlockURLFunc(ctx, url)
 }
 
-func (s storeMock) CreateLog(ctx context.Context, urlID int64, log *model.Log) error {
-	return nil
-}
-
 func TestProcessURLFailure(t *testing.T) {
 	serr := "err"
 	m := Worker{
-		downloader: downloaderMock{
-			downloadFunc: func(context.Context, string) <-chan downloader.Event {
-				stream := make(chan downloader.Event)
-				go func() {
-					stream <- downloader.Event{
-						Type: downloader.Failure,
-						Err:  errors.New(serr),
-					}
-					close(stream)
-				}()
-				return stream
+		processor: processorMock{
+			processFunc: func(ctx context.Context, url *model.URL) (string, error) {
+				return "", errors.New(serr)
 			},
 		},
 		store: storeMock{
@@ -91,25 +70,9 @@ func TestProcessURLFailure(t *testing.T) {
 func TestProcessURLSuccess(t *testing.T) {
 	file := "file.go"
 	m := Worker{
-		downloader: downloaderMock{
-			downloadFunc: func(context.Context, string) <-chan downloader.Event {
-				stream := make(chan downloader.Event)
-				go func() {
-					stream <- downloader.Event{
-						Type: downloader.Success,
-						Path: file,
-					}
-					close(stream)
-				}()
-				return stream
-			},
-		},
-		storage: storageMock{
-			uploadFunc: func(ctx context.Context, in string) (string, error) {
-				assertf(t, in == file,
-					`expected file to be %q, got %q`, file, in,
-				)
-				return in, nil
+		processor: processorMock{
+			processFunc: func(ctx context.Context, url *model.URL) (string, error) {
+				return file, nil
 			},
 		},
 		store: storeMock{
@@ -138,8 +101,8 @@ func TestProcessURLPanic(t *testing.T) {
 		serr     = "panic"
 	)
 	m := Worker{
-		downloader: downloaderMock{
-			downloadFunc: func(context.Context, string) <-chan downloader.Event {
+		processor: processorMock{
+			processFunc: func(ctx context.Context, url *model.URL) (string, error) {
 				panic(serr)
 			},
 		},
