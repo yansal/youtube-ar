@@ -13,7 +13,7 @@ import (
 
 // ListURLsManager is the manager interface required by ListURLs.
 type ListURLsManager interface {
-	ListURLs(context.Context, *model.Page) ([]model.URL, error)
+	ListURLs(context.Context, *query.URLs) ([]model.URL, error)
 }
 
 // ListURLs is the GET /urls handler.
@@ -25,7 +25,7 @@ func ListURLs(m ListURLsManager) http.HandlerFunc {
 
 func listURLs(m ListURLsManager) handlerFunc {
 	return func(r *http.Request) (*response, error) {
-		page, err := query.ParsePage(r.URL.Query())
+		q, err := query.ParseURLs(r.URL.Query())
 		if err != nil {
 			return nil, httpError{
 				err:  err,
@@ -34,7 +34,7 @@ func listURLs(m ListURLsManager) handlerFunc {
 		}
 
 		ctx := r.Context()
-		urls, err := m.ListURLs(ctx, page)
+		urls, err := m.ListURLs(ctx, q)
 		if err != nil {
 			return nil, err
 		}

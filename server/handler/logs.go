@@ -14,7 +14,7 @@ import (
 
 // ListLogsManager is the manager interface required by ListLogs.
 type ListLogsManager interface {
-	ListLogs(context.Context, int64, *model.Page) ([]model.Log, error)
+	ListLogs(context.Context, int64, *query.Logs) ([]model.Log, error)
 }
 
 // ListLogs is the GET /urls/:id/logs handler.
@@ -33,7 +33,7 @@ func listLogs(m ListLogsManager) handlerFunc {
 			return nil, httpError{code: http.StatusNotFound}
 		}
 
-		page, err := query.ParsePage(r.URL.Query())
+		q, err := query.ParseLogs(r.URL.Query())
 		if err != nil {
 			return nil, httpError{
 				err:  err,
@@ -41,7 +41,7 @@ func listLogs(m ListLogsManager) handlerFunc {
 			}
 		}
 
-		logs, err := m.ListLogs(ctx, id, page)
+		logs, err := m.ListLogs(ctx, id, q)
 		if err != nil {
 			return nil, err
 		}

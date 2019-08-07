@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/yansal/youtube-ar/model"
+	"github.com/yansal/youtube-ar/query"
 )
 
 // New returns a new store.
@@ -61,18 +62,18 @@ func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 }
 
 // ListURLs lists urls.
-func (s *Store) ListURLs(ctx context.Context, page *model.Page) ([]model.URL, error) {
+func (s *Store) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error) {
 	// TODO: add filters
 	var (
 		query string
 		args  []interface{}
 	)
-	if page.Cursor == 0 {
+	if q.Page.Cursor == 0 {
 		query = `select id, url, created_at, updated_at, status, error, file, retries from urls order by id desc limit $1`
-		args = []interface{}{page.Limit}
+		args = []interface{}{q.Page.Limit}
 	} else {
 		query = `select id, url, created_at, updated_at, status, error, file, retries from urls where id < $1 order by id desc limit $2`
-		args = []interface{}{page.Cursor, page.Limit}
+		args = []interface{}{q.Page.Cursor, q.Page.Limit}
 	}
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
@@ -95,10 +96,10 @@ func (s *Store) ListURLs(ctx context.Context, page *model.Page) ([]model.URL, er
 }
 
 // ListLogs list logs.
-func (s *Store) ListLogs(ctx context.Context, urlID int64, page *model.Page) ([]model.Log, error) {
+func (s *Store) ListLogs(ctx context.Context, urlID int64, q *query.Logs) ([]model.Log, error) {
 	query := `select unnest(logs[$1:$2]) from urls where id = $3`
-	cursor := page.Cursor + 1
-	args := []interface{}{cursor, cursor + page.Limit - 1, urlID}
+	cursor := q.Page.Cursor + 1
+	args := []interface{}{cursor, cursor + q.Page.Limit - 1, urlID}
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err

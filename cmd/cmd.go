@@ -11,8 +11,8 @@ import (
 	"github.com/yansal/youtube-ar/downloader"
 	"github.com/yansal/youtube-ar/log"
 	"github.com/yansal/youtube-ar/manager"
-	"github.com/yansal/youtube-ar/model"
 	"github.com/yansal/youtube-ar/payload"
+	"github.com/yansal/youtube-ar/query"
 	"github.com/yansal/youtube-ar/service"
 	"github.com/yansal/youtube-ar/store"
 	"github.com/yansal/youtube-ar/store/db"
@@ -136,7 +136,7 @@ func ListLogs(ctx context.Context, args []string) error {
 	store := store.New(db)
 	m := manager.NewServer(nil, store)
 
-	logs, err := m.ListLogs(ctx, urlID, &model.Page{Cursor: cursor, Limit: limit})
+	logs, err := m.ListLogs(ctx, urlID, &query.Logs{Page: query.Page{Cursor: cursor, Limit: limit}})
 	if err != nil {
 		return err
 	}
@@ -152,6 +152,7 @@ func ListURLs(ctx context.Context, args []string) error {
 	var cursor, limit int64
 	fs.Int64Var(&cursor, "cursor", 0, "cursor")
 	fs.Int64Var(&limit, "limit", 10, "limit")
+	// TODO: add status flag
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -164,7 +165,7 @@ func ListURLs(ctx context.Context, args []string) error {
 	store := store.New(db)
 	m := manager.NewServer(nil, store)
 
-	urls, err := m.ListURLs(ctx, &model.Page{Cursor: cursor, Limit: limit})
+	urls, err := m.ListURLs(ctx, &query.URLs{Page: query.Page{Cursor: cursor, Limit: limit}})
 	if err != nil {
 		return err
 	}

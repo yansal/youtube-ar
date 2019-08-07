@@ -8,6 +8,7 @@ import (
 	"github.com/yansal/youtube-ar/event"
 	"github.com/yansal/youtube-ar/model"
 	"github.com/yansal/youtube-ar/payload"
+	"github.com/yansal/youtube-ar/query"
 )
 
 // Server is the manager used for server features.
@@ -24,8 +25,8 @@ type BrokerServer interface {
 // StoreServer is the store interface required by Server.
 type StoreServer interface {
 	CreateURL(context.Context, *model.URL) error
-	ListURLs(context.Context, *model.Page) ([]model.URL, error)
-	ListLogs(context.Context, int64, *model.Page) ([]model.Log, error)
+	ListURLs(context.Context, *query.URLs) ([]model.URL, error)
+	ListLogs(context.Context, int64, *query.Logs) ([]model.Log, error)
 }
 
 // NewServer returns a new Server.
@@ -52,11 +53,11 @@ func (m *Server) CreateURL(ctx context.Context, p payload.URL) (*model.URL, erro
 }
 
 // ListURLs lists urls.
-func (m *Server) ListURLs(ctx context.Context, page *model.Page) ([]model.URL, error) {
-	return m.store.ListURLs(ctx, page)
+func (m *Server) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error) {
+	return m.store.ListURLs(ctx, q)
 }
 
 // ListLogs lists logs.
-func (m *Server) ListLogs(ctx context.Context, urlID int64, page *model.Page) ([]model.Log, error) {
-	return m.store.ListLogs(ctx, urlID, page)
+func (m *Server) ListLogs(ctx context.Context, urlID int64, q *query.Logs) ([]model.Log, error) {
+	return m.store.ListLogs(ctx, urlID, q)
 }
