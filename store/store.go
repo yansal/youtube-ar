@@ -39,8 +39,8 @@ func (s *Store) UnlockURL(ctx context.Context, url *model.URL) error {
 	return s.db.QueryRowContext(ctx, query, args...).Scan(&url.CreatedAt, &url.UpdatedAt)
 }
 
-// CreateLog create log.
-func (s *Store) CreateLog(ctx context.Context, urlID int64, log *model.Log) error {
+// AppendLog create log.
+func (s *Store) AppendLog(ctx context.Context, urlID int64, log *model.Log) error {
 	query := `update urls set logs = array_append(logs, $1) where id = $2`
 	args := []interface{}{log.Log, urlID}
 	return s.db.QueryRowContext(ctx, query, args...).Scan()

@@ -28,7 +28,7 @@ type Storage interface {
 
 // Store is the store interface required by Processor.
 type Store interface {
-	CreateLog(ctx context.Context, urlID int64, log *model.Log) error
+	AppendLog(ctx context.Context, urlID int64, log *model.Log) error
 }
 
 // New returns a new Processor.
@@ -46,7 +46,7 @@ func (p *Processor) Process(ctx context.Context, url *model.URL) (string, error)
 	for event := range stream {
 		switch event.Type {
 		case downloader.Log:
-			if err := p.store.CreateLog(ctx, url.ID, &model.Log{Log: event.Log}); err != nil {
+			if err := p.store.AppendLog(ctx, url.ID, &model.Log{Log: event.Log}); err != nil {
 				// TODO: log err
 			}
 		case downloader.Failure:
