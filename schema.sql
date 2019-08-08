@@ -20,7 +20,7 @@ create function urls_update() returns trigger as $urls_update$
 $urls_update$ language plpgsql;
 
 create trigger urls_update before update on urls
-    for each row execute function urls_update();
+    for each row execute procedure urls_update();
 
 create table youtube_videos (
     id serial primary key,
