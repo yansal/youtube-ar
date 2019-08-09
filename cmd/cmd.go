@@ -136,7 +136,7 @@ func ListLogs(ctx context.Context, args []string) error {
 	store := store.New(db)
 	m := manager.NewServer(nil, store)
 
-	logs, err := m.ListLogs(ctx, urlID, &query.Logs{Page: query.Page{Cursor: cursor, Limit: limit}})
+	logs, err := m.ListLogs(ctx, urlID, &query.Logs{Cursor: cursor})
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func ListURLs(ctx context.Context, args []string) error {
 	store := store.New(db)
 	m := manager.NewServer(nil, store)
 
-	urls, err := m.ListURLs(ctx, &query.URLs{Page: query.Page{Cursor: cursor, Limit: limit}})
+	urls, err := m.ListURLs(ctx, &query.URLs{Cursor: cursor, Limit: limit})
 	if err != nil {
 		return err
 	}

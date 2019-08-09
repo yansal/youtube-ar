@@ -68,12 +68,12 @@ func (s *Store) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error
 		query string
 		args  []interface{}
 	)
-	if q.Page.Cursor == 0 {
+	if q.Cursor == 0 {
 		query = `select id, url, created_at, updated_at, status, error, file, retries from urls order by id desc limit $1`
-		args = []interface{}{q.Page.Limit}
+		args = []interface{}{q.Limit}
 	} else {
 		query = `select id, url, created_at, updated_at, status, error, file, retries from urls where id < $1 order by id desc limit $2`
-		args = []interface{}{q.Page.Cursor, q.Page.Limit}
+		args = []interface{}{q.Cursor, q.Limit}
 	}
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
@@ -97,9 +97,9 @@ func (s *Store) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error
 
 // ListLogs list logs.
 func (s *Store) ListLogs(ctx context.Context, urlID int64, q *query.Logs) ([]model.Log, error) {
-	query := `select unnest(logs[$1:$2]) from urls where id = $3`
-	cursor := q.Page.Cursor + 1
-	args := []interface{}{cursor, cursor + q.Page.Limit - 1, urlID}
+	query := `select unnest(logs[$1:]) from urls where id = $2`
+	cursor := q.Cursor + 1
+	args := []interface{}{cursor, urlID}
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err

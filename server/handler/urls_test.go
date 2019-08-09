@@ -29,8 +29,8 @@ func (m mockManager) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, 
 func TestListURLs(t *testing.T) {
 	h := listURLs(mockManager{
 		listURLsFunc: func(ctx context.Context, q *query.URLs) ([]model.URL, error) {
-			assertf(t, q.Page.Cursor == 0, "expected cursor to be 0, got %d", q.Page.Cursor)
-			assertf(t, q.Page.Limit == query.DefaultLimit, "expected limit to be %d, got %d", query.DefaultLimit, q.Page.Limit)
+			assertf(t, q.Cursor == 0, "expected cursor to be 0, got %d", q.Cursor)
+			assertf(t, q.Limit == query.DefaultLimit, "expected limit to be %d, got %d", query.DefaultLimit, q.Limit)
 			assertf(t, q.Status == nil, "expected status to be nil, got %v", q.Status)
 			return nil, nil
 		},
@@ -54,8 +54,8 @@ func TestListURLsQuery(t *testing.T) {
 	)
 	h := listURLs(mockManager{
 		listURLsFunc: func(ctx context.Context, q *query.URLs) ([]model.URL, error) {
-			assertf(t, q.Page.Cursor == cursor, "expected cursor to be %d, got %d", cursor, q.Page.Cursor)
-			assertf(t, q.Page.Limit == limit, "expected limit to be %d, got %d", limit, q.Page.Limit)
+			assertf(t, q.Cursor == cursor, "expected cursor to be %d, got %d", cursor, q.Cursor)
+			assertf(t, q.Limit == limit, "expected limit to be %d, got %d", limit, q.Limit)
 			assertf(t, len(q.Status) == len(status), "expected %d status, got %v", len(status), len(q.Status))
 			for i := range status {
 				assertf(t, q.Status[i] == status[i], "expected status %v, got %v", status[i], q.Status[i])

@@ -18,12 +18,12 @@ func ParseURLs(v url.Values) (*URLs, error) {
 	}
 	var u URLs
 	if cursor, ok := q.Params["cursor"]; ok {
-		u.Page.Cursor = cursor.(int64)
+		u.Cursor = cursor.(int64)
 	}
 	if limit, ok := q.Params["limit"]; !ok {
-		u.Page.Limit = DefaultLimit
+		u.Limit = DefaultLimit
 	} else {
-		u.Page.Limit = limit.(int64)
+		u.Limit = limit.(int64)
 	}
 	if status, ok := q.Params["status"]; ok {
 		u.Status = status.([]string)
@@ -34,7 +34,6 @@ func ParseURLs(v url.Values) (*URLs, error) {
 // ParseLogs parses v and returns a new Logs.
 func ParseLogs(v url.Values) (*Logs, error) {
 	q, err := query.Validate(v,
-		query.WithIntParam("limit"),
 		query.WithIntParam("cursor"),
 		query.WithStringsParam("status", []string{"pending", "processing", "failure", "success"}),
 	)
@@ -43,31 +42,21 @@ func ParseLogs(v url.Values) (*Logs, error) {
 	}
 	var l Logs
 	if cursor, ok := q.Params["cursor"]; ok {
-		l.Page.Cursor = cursor.(int64)
-	}
-	if limit, ok := q.Params["limit"]; !ok {
-		l.Page.Limit = DefaultLimit
-	} else {
-		l.Page.Limit = limit.(int64)
+		l.Cursor = cursor.(int64)
 	}
 	return &l, nil
 }
 
 // URLs is the query for urls.
 type URLs struct {
-	Page   Page
+	Cursor int64
+	Limit  int64
 	Status []string
 }
 
 // Logs is the query for logs.
 type Logs struct {
-	Page Page
-}
-
-// Page is a paginated query.
-type Page struct {
 	Cursor int64
-	Limit  int64
 }
 
 // DefaultLimit is the default limit.
