@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/yansal/youtube-ar/model"
 	"github.com/yansal/youtube-ar/payload"
 	"github.com/yansal/youtube-ar/query"
 	"github.com/yansal/youtube-ar/resource"
+	"github.com/yansal/youtube-ar/server"
 )
 
 // ListURLsManager is the manager interface required by ListURLs.
@@ -39,6 +41,40 @@ func listURLs(m ListURLsManager) handlerFunc {
 			return nil, err
 		}
 		resource := resource.NewURLs(urls)
+		b, err := json.Marshal(resource)
+		if err != nil {
+			return nil, err
+		}
+		return &response{body: b, code: http.StatusOK}, nil
+	}
+}
+
+// DetailURLManager is the manager interface required by DetailURL.
+type DetailURLManager interface {
+	GetURL(context.Context, int64) (*model.URL, error)
+}
+
+// DetailURL is the GET /urls handler.
+func DetailURL(m DetailURLManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		serveHTTP(w, r, detailURL(m))
+	}
+}
+
+func detailURL(m DetailURLManager) handlerFunc {
+	return func(r *http.Request) (*response, error) {
+		ctx := r.Context()
+		match := server.ContextMatch(ctx)
+		id, err := strconv.ParseInt(match[1], 0, 0)
+		if err != nil {
+			return nil, httpError{code: http.StatusNotFound}
+		}
+
+		url, err := m.GetURL(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		resource := resource.NewURL(url)
 		b, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err

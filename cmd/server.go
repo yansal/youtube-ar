@@ -34,6 +34,7 @@ func Server(ctx context.Context, args []string) error {
 
 	mux := server.NewMux()
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/api/urls$`), handler.ListURLs(manager))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/api/urls/(\d+)$`), handler.DetailURL(manager))
 	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/api/urls$`), handler.CreateURL(manager))
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/api/urls/(\d+)/logs$`), handler.ListLogs(manager))
 
