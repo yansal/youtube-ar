@@ -43,5 +43,6 @@ func Server(ctx context.Context, args []string) error {
 	}
 
 	handler := middleware.Log(mux, log)
+	handler = middleware.CORS(mux)
 	return http.ListenAndServe(":"+port, handler)
 }
