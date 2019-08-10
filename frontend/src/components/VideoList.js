@@ -16,8 +16,8 @@ class VideoList extends React.Component {
 
   componentDidMount() {
     fetch(`${API_URL}/urls`).then(response => {
-      response.json().then(list => {
-        this.setState({ list })
+      response.json().then(resource => {
+        this.setState({ list: resource.urls })
       })
     })
   }

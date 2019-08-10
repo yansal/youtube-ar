@@ -35,14 +35,21 @@ func NewURL(url *model.URL) *URL {
 	return &resource
 }
 
+// URLs is the urls resource.
+type URLs struct {
+	URLs       []URL `json:"urls"`
+	NextCursor int64 `json:"next_cursor"`
+}
+
 // NewURLs returns a new URL list.
-func NewURLs(urls []model.URL) []URL {
-	var resources []URL
+func NewURLs(urls []model.URL) *URLs {
+	var resource URLs
 	for i := range urls {
-		resource := NewURL(&urls[i])
-		resources = append(resources, *resource)
+		url := NewURL(&urls[i])
+		resource.URLs = append(resource.URLs, *url)
 	}
-	return resources
+	resource.NextCursor = urls[len(urls)-1].ID
+	return &resource
 }
 
 // Log is the log resource.
