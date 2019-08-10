@@ -38,12 +38,12 @@ func Server(ctx context.Context, args []string) error {
 	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls$`), handler.CreateURL(manager))
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)/logs$`), handler.ListLogs(manager))
 
+	handler := middleware.Log(mux, log)
+	handler = middleware.CORS(handler)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-
-	handler := middleware.Log(mux, log)
-	handler = middleware.CORS(mux)
 	return http.ListenAndServe(":"+port, handler)
 }
