@@ -45,7 +45,7 @@ func listLogs(m ListLogsManager) handlerFunc {
 		if err != nil {
 			return nil, err
 		}
-		resource := resource.NewLogs(logs)
+		resource := resource.NewLogs(logs, q.Cursor)
 		b, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err

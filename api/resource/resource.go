@@ -56,12 +56,19 @@ func NewLog(log *model.Log) *Log {
 	return &resource
 }
 
+// Logs is the logs resource.
+type Logs struct {
+	Logs       []Log `json:"logs"`
+	NextCursor int64 `json:"next_cursor"`
+}
+
 // NewLogs returns a new Log list.
-func NewLogs(logs []model.Log) []Log {
-	var resources []Log
+func NewLogs(logs []model.Log, cursor int64) *Logs {
+	var resource Logs
 	for i := range logs {
-		resource := NewLog(&logs[i])
-		resources = append(resources, *resource)
+		log := NewLog(&logs[i])
+		resource.Logs = append(resource.Logs, *log)
 	}
-	return resources
+	resource.NextCursor = cursor + int64(len(logs))
+	return &resource
 }

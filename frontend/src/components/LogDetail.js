@@ -4,16 +4,31 @@ import { API_URL } from '../constants/api'
 
 class LogDetail extends React.Component {
   state = {
-    logs: []
+    logs: [],
   }
 
   componentDidMount() {
+    this.refresh()
+    this.refreshInterval = setInterval(this.refresh, 1000)
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.refreshInterval)
+  }
+
+  refresh = () => {
     const { match } = this.props
     const { id } = match && match.params
+    const { nextCursor } = this.state
 
-    fetch(`${API_URL}/urls/${id}/logs`).then(response => {
-      response.json().then(logs => {
-        this.setState({ logs })
+    fetch(`${API_URL}/urls/${id}/logs?cursor=${nextCursor || 0}`).then(response => {
+      response.json().then(resource => {
+        if (resource.logs === null) {
+          return
+        }
+        const { logs } = this.state
+        const updatedLogs = logs.concat(resource.logs)
+        this.setState({ logs: updatedLogs, nextCursor: resource.next_cursor })
       })
     })
   }

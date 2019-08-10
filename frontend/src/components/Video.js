@@ -8,11 +8,17 @@ class Video extends React.Component {
   constructor(props) {
     super(props)
 
-    this.refreshInterval = setInterval(this.refresh, 1000)
-
     this.state = {
       status: props.video.status
     }
+  }
+
+  componentDidMount() {
+    this.refreshInterval = setInterval(this.refresh, 1000)
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.refreshInterval)
   }
 
   refresh = () => {
