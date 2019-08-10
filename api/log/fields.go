@@ -5,38 +5,32 @@ import (
 	"strconv"
 )
 
-// Field is the field interface.
-type Field interface {
-	key() string
-	value() string
+// A Field is a log field.
+type Field struct {
+	key, value string
 }
-
-type field struct{ k, v string }
-
-func (f field) key() string   { return f.k }
-func (f field) value() string { return f.v }
 
 // Int returns a field where value is an int.
 func Int(key string, value int) Field {
-	return field{k: key, v: strconv.Itoa(value)}
+	return Field{key: key, value: strconv.Itoa(value)}
 }
 
 // String returns a field where value is a string.
 func String(key string, value string) Field {
-	return field{k: key, v: value}
+	return Field{key: key, value: value}
 }
 
 // Stringer returns a field where value implements fmt.Stringer.
 func Stringer(key string, value fmt.Stringer) Field {
-	return field{k: key, v: value.String()}
+	return Field{key: key, value: value.String()}
 }
 
 // Error returns a field where value is an error.
 func Error(key string, value error) Field {
-	return field{k: key, v: value.Error()}
+	return Field{key: key, value: value.Error()}
 }
 
-// Raw returns a field where value is an empty interface{}.
+// Raw returns a field where value is an interface{}.
 func Raw(key string, value interface{}) Field {
-	return field{k: key, v: fmt.Sprintf("%+v", value)}
+	return Field{key: key, value: fmt.Sprintf("%+v", value)}
 }

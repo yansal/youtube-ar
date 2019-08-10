@@ -2,10 +2,10 @@ package log
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"os"
-	"time"
+
+	"github.com/yansal/youtube-ar/api/log/logfmt"
 )
 
 // Logger is a logger.
@@ -23,14 +23,12 @@ type logger struct {
 }
 
 func (l *logger) Log(ctx context.Context, msg string, fields ...Field) {
-	event := map[string]interface{}{
-		"msg":       msg,
-		"timestamp": time.Now(),
-	}
+	fields = append(fields, String("msg", msg))
+	event := make(map[string]string, len(fields))
 	for _, field := range fields {
-		event[field.key()] = field.value()
+		event[field.key] = field.value
 	}
-	b, err := json.Marshal(event)
+	b, err := logfmt.Marshal(event)
 	if err != nil {
 		panic(err)
 	}

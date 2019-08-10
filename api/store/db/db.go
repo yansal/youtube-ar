@@ -30,11 +30,6 @@ func New(logger log.Logger) (*sql.DB, error) {
 				log.String("query", query),
 				log.Stringer("duration", duration),
 			}
-			var argvalues []interface{}
-			for _, arg := range args {
-				argvalues = append(argvalues, arg.Value)
-			}
-			fields = append(fields, log.Raw("args", argvalues))
 			if err != nil {
 				fields = append(fields, log.Error("error", err))
 			}

@@ -34,7 +34,9 @@ func (tr *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	defer func() {
 		fields := []log.Field{
 			log.Stringer("duration", time.Since(start)),
-			log.Stringer("url", req.URL), // TODO: remove private data such as api keys
+			log.String("host", req.URL.Hostname()),
+			log.String("http_method", req.Method),
+			log.String("http_path", req.URL.Path),
 		}
 		if rterr != nil {
 			tr.log.Log(req.Context(), rterr.Error(), fields...)
@@ -52,7 +54,7 @@ func (tr *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 		}
 
-		fields = append(fields, log.Int("code", resp.StatusCode))
+		fields = append(fields, log.Int("http_status", resp.StatusCode))
 		tr.log.Log(req.Context(), req.Method+" "+req.URL.Path,
 			fields...)
 	}()

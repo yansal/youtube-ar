@@ -14,8 +14,10 @@ func Log(h http.Handler, l log.Logger) http.Handler {
 		start := time.Now()
 		defer func() {
 			fields := []log.Field{
-				log.Int("code", rw.code),
 				log.Stringer("duration", time.Since(start)),
+				log.String("http_method", r.Method),
+				log.String("http_path", r.URL.Path),
+				log.Int("http_status", rw.code),
 			}
 			msg := r.Method + " " + r.URL.Path
 			l.Log(r.Context(), msg, fields...)
