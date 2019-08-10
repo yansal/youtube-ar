@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom'
 
-import { BASE_URL } from '../constants/api'
+import { API_URL } from '../constants/api'
 
 class Video extends React.Component {
   constructor(props) {
@@ -15,7 +15,7 @@ class Video extends React.Component {
     }
   }
 
-  refresh = () => {
+  refresh = () => {
     const { id } = this.props && this.props.video
     const { status } = this.state
 
@@ -23,7 +23,7 @@ class Video extends React.Component {
       return clearInterval(this.refreshInterval)
     }
 
-    fetch(`${BASE_URL}/urls/${id}`).then(response => {
+    fetch(`${API_URL}/urls/${id}`).then(response => {
       response.json().then(video => {
         this.setState({
           status: video.status

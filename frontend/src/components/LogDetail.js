@@ -1,7 +1,6 @@
 import React from 'react'
-// import PropTypes from 'prop-types'
 
-import { BASE_URL } from '../constants/api'
+import { API_URL } from '../constants/api'
 
 class LogDetail extends React.Component {
   state = {
@@ -12,7 +11,7 @@ class LogDetail extends React.Component {
     const { match } = this.props
     const { id } = match && match.params
 
-    fetch(`${BASE_URL}/urls/${id}/logs`).then(response => {
+    fetch(`${API_URL}/urls/${id}/logs`).then(response => {
       response.json().then(logs => {
         this.setState({ logs })
       })

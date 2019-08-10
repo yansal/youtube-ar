@@ -1,1 +1,1 @@
-export const BASE_URL = 'https://youtube-ar-2.herokuapp.com/api'
+export const API_URL = process.env.REACT_APP_API_URL

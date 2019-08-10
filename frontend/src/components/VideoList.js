@@ -1,7 +1,6 @@
 import React from 'react'
 
-import { BASE_URL } from '../constants/api'
-
+import { API_URL } from '../constants/api'
 import Video from './Video'
 
 class VideoList extends React.Component {
@@ -16,7 +15,7 @@ class VideoList extends React.Component {
   }
 
   componentDidMount() {
-    fetch(`${BASE_URL}/urls`).then(response => {
+    fetch(`${API_URL}/urls`).then(response => {
       response.json().then(list => {
         this.setState({ list })
       })
@@ -28,7 +27,7 @@ class VideoList extends React.Component {
 
     const { value } = this.videoInput && this.videoInput.current
 
-    fetch(`${BASE_URL}/urls`, {
+    fetch(`${API_URL}/urls`, {
       method: 'POST',
       body: JSON.stringify({
         url: value
