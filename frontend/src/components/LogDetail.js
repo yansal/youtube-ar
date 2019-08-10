@@ -23,7 +23,7 @@ class LogDetail extends React.Component {
     const { id } = match && match.params
 
     const { logs } = this.state
-    const logNodes = logs.map(log => <li key={log.log}>{log.log}</li>)
+    const logNodes = logs.map((log, index) => <li key={index}>{log.log}</li>)
 
     return <div>
       <h1>Logs for video #{id}</h1>
