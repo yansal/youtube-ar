@@ -33,10 +33,10 @@ func Server(ctx context.Context, args []string) error {
 	manager := manager.NewServer(broker, store)
 
 	mux := server.NewMux()
-	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/api/urls$`), handler.ListURLs(manager))
-	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/api/urls/(\d+)$`), handler.DetailURL(manager))
-	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/api/urls$`), handler.CreateURL(manager))
-	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/api/urls/(\d+)/logs$`), handler.ListLogs(manager))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls$`), handler.ListURLs(manager))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)$`), handler.DetailURL(manager))
+	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls$`), handler.CreateURL(manager))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)/logs$`), handler.ListLogs(manager))
 
 	port := os.Getenv("PORT")
 	if port == "" {
