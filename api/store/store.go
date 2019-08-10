@@ -121,7 +121,20 @@ func (s *Store) ListLogs(ctx context.Context, urlID int64, q *query.Logs) ([]mod
 
 // CreateYoutubeVideo creates v.
 func (s *Store) CreateYoutubeVideo(ctx context.Context, v *model.YoutubeVideo) error {
-	query := `insert into youtube_videos(youtube_id) values($1) on conflict do nothing returning id, created_at`
+	query := `insert into youtube_videos(youtube_id) values($1) returning id, created_at`
 	args := []interface{}{v.YoutubeID}
 	return s.db.QueryRowContext(ctx, query, args...).Scan(&v.ID, &v.CreatedAt)
+}
+
+// GetYoutubeVideoByYoutubeID gets a youtube video from a youtube id.
+func (s *Store) GetYoutubeVideoByYoutubeID(ctx context.Context, youtubeID string) (*model.YoutubeVideo, error) {
+	query := `select id, youtube_id, created_at from youtube_videos where youtube_id = $1`
+	args := []interface{}{youtubeID}
+	var v model.YoutubeVideo
+	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
+		&v.ID, &v.YoutubeID, &v.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
+	return &v, nil
 }

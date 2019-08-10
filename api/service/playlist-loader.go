@@ -23,6 +23,7 @@ type PlaylistLoaderManager interface {
 
 // PlaylistLoaderStore is the store interface required by PlaylistLoader.
 type PlaylistLoaderStore interface {
+	GetYoutubeVideoByYoutubeID(context.Context, string) (*model.YoutubeVideo, error)
 	CreateYoutubeVideo(context.Context, *model.YoutubeVideo) error
 }
 
@@ -45,10 +46,15 @@ func (s *PlaylistLoader) CreateURLsFromYoutube(ctx context.Context, playlistID s
 
 	for i := range videos {
 		youtubeID := videos[i].ID
-		v := &model.YoutubeVideo{YoutubeID: youtubeID}
-		if err := s.store.CreateYoutubeVideo(ctx, v); err == sql.ErrNoRows {
+		v, err := s.store.GetYoutubeVideoByYoutubeID(ctx, youtubeID)
+		if err == nil {
 			continue
-		} else if err != nil {
+		} else if err != sql.ErrNoRows {
+			return err
+		}
+
+		v = &model.YoutubeVideo{YoutubeID: youtubeID}
+		if err := s.store.CreateYoutubeVideo(ctx, v); err != nil {
 			return err
 		}
 
