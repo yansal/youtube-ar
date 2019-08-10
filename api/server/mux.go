@@ -52,7 +52,7 @@ func (mux *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if hasmatch {
 			status = http.StatusMethodNotAllowed
 		}
-		w.WriteHeader(status)
+		http.Error(w, http.StatusText(status), status)
 		return
 	}
 
