@@ -11,3 +11,12 @@ An API instance is deployed at https://youtube-ar-2.herokuapp.com/.
 * Add youtube-dl buildpack
 * Set AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET, YOUTUBE_API_KEY config
 * Push to heroku with ```git push heroku `git subtree split --prefix api`:master```
+
+## TODO
+
+* next for urls list
+* retry with tor
+* filter urls by status
+* soft delete url
+* thumbnail via oembed
+* logfmt
