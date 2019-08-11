@@ -21,22 +21,36 @@ type Store struct {
 
 // CreateURL creates url.
 func (s *Store) CreateURL(ctx context.Context, url *model.URL) error {
-	query := `insert into urls(url, retries) values($1, $2) returning id, created_at, updated_at, status`
-	args := []interface{}{url.URL, url.Retries}
+	query, args := querybuilder.NewInsert("urls", []string{"url", "retries"}).
+		Values(url.URL, url.Retries).
+		Returning("id", "created_at", "updated_at", "status").
+		Build()
 	return s.db.QueryRowContext(ctx, query, args...).Scan(&url.ID, &url.CreatedAt, &url.UpdatedAt, &url.Status)
 }
 
 // LockURL locks url.
 func (s *Store) LockURL(ctx context.Context, url *model.URL) error {
-	query := `update urls set status = $1 where id = $2 and status = 'pending' returning url, created_at, updated_at`
-	args := []interface{}{url.Status, url.ID}
+	query, args := querybuilder.NewUpdate("urls",
+		map[string]interface{}{"status": url.Status}).
+		Where(querybuilder.NewBoolExpr(
+			querybuilder.NewIdentifier("id").Equal(url.ID)).
+			And(querybuilder.NewIdentifier("status").Equal("pending")),
+		).
+		Returning("id", "created_at", "updated_at").
+		Build()
 	return s.db.QueryRowContext(ctx, query, args...).Scan(&url.URL, &url.CreatedAt, &url.UpdatedAt)
 }
 
 // UnlockURL unlocks url.
 func (s *Store) UnlockURL(ctx context.Context, url *model.URL) error {
-	query := `update urls set status = $1, file = $2, error = $3 where id = $4 and status = 'processing' returning created_at, updated_at`
-	args := []interface{}{url.Status, url.File, url.Error, url.ID}
+	query, args := querybuilder.NewUpdate("urls",
+		map[string]interface{}{"status": url.Status, "file": url.File, "error": url.Error}).
+		Where(querybuilder.NewBoolExpr(
+			querybuilder.NewIdentifier("id").Equal(url.ID)).
+			And(querybuilder.NewIdentifier("status").Equal("processing")),
+		).
+		Returning("created_at", "updated_at").
+		Build()
 	return s.db.QueryRowContext(ctx, query, args...).Scan(&url.CreatedAt, &url.UpdatedAt)
 }
 
@@ -49,11 +63,12 @@ func (s *Store) AppendLog(ctx context.Context, urlID int64, log *model.Log) erro
 
 // GetURL gets the url with id.
 func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
-	var (
-		query = `select id, url, created_at, updated_at, status, error, file, retries, logs from urls where id = $1`
-		args  = []interface{}{id}
-		url   model.URL
-	)
+	query, args := querybuilder.NewSelect("id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "logs").
+		From("urls").
+		Where(querybuilder.NewIdentifier("id").Equal(id)).
+		Build()
+
+	var url model.URL
 	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
 		&url.ID, &url.URL, &url.CreatedAt, &url.UpdatedAt, &url.Status, &url.Error, &url.File, &url.Retries, &url.Logs,
 	); err != nil {
@@ -134,15 +149,21 @@ func (s *Store) ListLogs(ctx context.Context, urlID int64, q *query.Logs) ([]mod
 
 // CreateYoutubeVideo creates v.
 func (s *Store) CreateYoutubeVideo(ctx context.Context, v *model.YoutubeVideo) error {
-	query := `insert into youtube_videos(youtube_id) values($1) returning id, created_at`
-	args := []interface{}{v.YoutubeID}
+	query, args := querybuilder.NewInsert("youtube_videos", []string{"youtube_id"}).
+		Values(v.YoutubeID).
+		Returning("id", "created_at").
+		Build()
+
 	return s.db.QueryRowContext(ctx, query, args...).Scan(&v.ID, &v.CreatedAt)
 }
 
 // GetYoutubeVideoByYoutubeID gets a youtube video from a youtube id.
 func (s *Store) GetYoutubeVideoByYoutubeID(ctx context.Context, youtubeID string) (*model.YoutubeVideo, error) {
-	query := `select id, youtube_id, created_at from youtube_videos where youtube_id = $1`
-	args := []interface{}{youtubeID}
+	query, args := querybuilder.NewSelect("id", "youtube_id", "created_at").
+		From("youtube_videos").
+		Where(querybuilder.NewIdentifier("youtube_id").Equal(youtubeID)).
+		Build()
+
 	var v model.YoutubeVideo
 	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
 		&v.ID, &v.YoutubeID, &v.CreatedAt,

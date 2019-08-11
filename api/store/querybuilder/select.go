@@ -40,10 +40,6 @@ func (stmt *Select) Limit(i int64) *Select {
 
 // Build returns the built statement and its parameters.
 func (stmt *Select) Build() (string, []interface{}) {
-	if len(stmt.columns) == 0 {
-		panic("no columns")
-	}
-
 	b := new(builder)
 	b.write("SELECT ")
 	for i := range stmt.columns {

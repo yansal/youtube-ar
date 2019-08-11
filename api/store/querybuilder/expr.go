@@ -27,6 +27,11 @@ func (i *Identifier) LessThan(value interface{}) Expr {
 	return &infixExpr{left: newIdentifier(i.identifier), op: "<", right: newValue(value)}
 }
 
+// Equal returns a new Expr.
+func (i *Identifier) Equal(value interface{}) Expr {
+	return &infixExpr{left: newIdentifier(i.identifier), op: "=", right: newValue(value)}
+}
+
 // NewBoolExpr returns a new boolean expression.
 func NewBoolExpr(left Expr) *BoolExpr {
 	return &BoolExpr{left: left}
