@@ -37,6 +37,10 @@ func (s storeMock) UnlockURL(ctx context.Context, url *model.URL) error {
 	return s.unlockURLFunc(ctx, url)
 }
 
+func (s storeMock) SetOEmbed(ctx context.Context, url *model.URL) error {
+	return nil
+}
+
 func TestDownloadURLFailure(t *testing.T) {
 	serr := "err"
 	m := Worker{

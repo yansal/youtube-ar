@@ -107,7 +107,7 @@ func GetOembed(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%+v\n", data)
+	fmt.Printf("%s\n", data)
 	return nil
 }
 

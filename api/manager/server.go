@@ -46,12 +46,18 @@ func (m *Server) CreateURL(ctx context.Context, p payload.URL) (*model.URL, erro
 		return nil, err
 	}
 
-	e := &event.URL{ID: url.ID}
+	e := &event.URL{ID: url.ID, URL: url.URL}
 	b, err := json.Marshal(e)
 	if err != nil {
 		return nil, err
 	}
-	return url, m.broker.Send(ctx, "download-url", string(b))
+	if err := m.broker.Send(ctx, "download-url", string(b)); err != nil {
+		return nil, err
+	}
+	if err := m.broker.Send(ctx, "get-oembed", string(b)); err != nil {
+		return nil, err
+	}
+	return url, nil
 }
 
 // GetURL gets an url.

@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"encoding/json"
 	"os"
 	"time"
 
@@ -19,13 +20,14 @@ func NewSerializer() *Serializer {
 
 // URL is the url resource.
 type URL struct {
-	ID        int64     `json:"id,omitempty"`
-	URL       string    `json:"url,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	Status    string    `json:"status,omitempty"`
-	Error     string    `json:"error,omitempty"`
-	File      string    `json:"file,omitempty"`
+	ID        int64           `json:"id,omitempty"`
+	URL       string          `json:"url,omitempty"`
+	CreatedAt time.Time       `json:"created_at,omitempty"`
+	UpdatedAt time.Time       `json:"updated_at,omitempty"`
+	Status    string          `json:"status,omitempty"`
+	Error     string          `json:"error,omitempty"`
+	File      string          `json:"file,omitempty"`
+	OEmbed    json.RawMessage `json:"oembed,omitempty"`
 }
 
 // NewURL returns a new URL.
@@ -36,6 +38,7 @@ func (s *Serializer) NewURL(url *model.URL) *URL {
 		CreatedAt: url.CreatedAt,
 		UpdatedAt: url.UpdatedAt,
 		Status:    url.Status,
+		OEmbed:    url.OEmbed,
 	}
 	if url.Error.Valid {
 		resource.Error = url.Error.String

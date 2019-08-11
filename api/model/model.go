@@ -20,6 +20,7 @@ type URL struct {
 	File      sql.NullString
 	Retries   sql.NullInt64
 	Logs      pq.StringArray
+	OEmbed    []byte // json-encoded
 }
 
 // ShouldRetry reports whether failed because of a rate limiter or a geo limitation.

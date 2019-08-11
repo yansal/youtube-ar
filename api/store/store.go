@@ -37,9 +37,9 @@ func (s *Store) LockURL(ctx context.Context, url *model.URL) error {
 			querybuilder.NewIdentifier("id").Equal(url.ID)).
 			And(querybuilder.NewIdentifier("status").Equal("pending")),
 		).
-		Returning("url", "created_at", "updated_at").
 		Build()
-	return s.db.QueryRowContext(ctx, query, args...).Scan(&url.URL, &url.CreatedAt, &url.UpdatedAt)
+	_, err := s.db.ExecContext(ctx, query, args...)
+	return err
 }
 
 // UnlockURL unlocks url.
@@ -50,9 +50,19 @@ func (s *Store) UnlockURL(ctx context.Context, url *model.URL) error {
 			querybuilder.NewIdentifier("id").Equal(url.ID)).
 			And(querybuilder.NewIdentifier("status").Equal("processing")),
 		).
-		Returning("created_at", "updated_at").
 		Build()
-	return s.db.QueryRowContext(ctx, query, args...).Scan(&url.CreatedAt, &url.UpdatedAt)
+	_, err := s.db.ExecContext(ctx, query, args...)
+	return err
+}
+
+// SetOEmbed sets oembed.
+func (s *Store) SetOEmbed(ctx context.Context, url *model.URL) error {
+	query, args := querybuilder.NewUpdate("urls",
+		map[string]interface{}{"oembed": url.OEmbed}).
+		Where(querybuilder.NewIdentifier("id").Equal(url.ID)).
+		Build()
+	_, err := s.db.ExecContext(ctx, query, args...)
+	return err
 }
 
 // AppendLog create log.
@@ -67,7 +77,7 @@ func (s *Store) AppendLog(ctx context.Context, urlID int64, log *model.Log) erro
 
 // GetURL gets the url with id.
 func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
-	query, args := querybuilder.NewSelect("id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "logs").
+	query, args := querybuilder.NewSelect("id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "logs", "oembed").
 		From("urls").
 		Where(querybuilder.NewBoolExpr(
 			querybuilder.NewIdentifier("id").Equal(id)).And(
@@ -76,7 +86,7 @@ func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 
 	var url model.URL
 	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
-		&url.ID, &url.URL, &url.CreatedAt, &url.UpdatedAt, &url.Status, &url.Error, &url.File, &url.Retries, &url.Logs,
+		&url.ID, &url.URL, &url.CreatedAt, &url.UpdatedAt, &url.Status, &url.Error, &url.File, &url.Retries, &url.Logs, &url.OEmbed,
 	); err != nil {
 		return nil, err
 	}
@@ -104,7 +114,7 @@ func (s *Store) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error
 	var urls []model.URL
 	for rows.Next() {
 		var url model.URL
-		if err := rows.Scan(&url.ID, &url.URL, &url.CreatedAt, &url.UpdatedAt, &url.Status, &url.Error, &url.File, &url.Retries); err != nil {
+		if err := rows.Scan(&url.ID, &url.URL, &url.CreatedAt, &url.UpdatedAt, &url.Status, &url.Error, &url.File, &url.Retries, &url.OEmbed); err != nil {
 			return nil, err
 		}
 		urls = append(urls, url)
@@ -118,7 +128,7 @@ func (s *Store) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error
 
 func buildListURLs(q *query.URLs) (string, []interface{}) {
 	stmt := querybuilder.NewSelect(
-		"id", "url", "created_at", "updated_at", "status", "error", "file", "retries",
+		"id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "oembed",
 	).From("urls")
 
 	expr := querybuilder.NewIdentifier("deleted_at").IsNull()

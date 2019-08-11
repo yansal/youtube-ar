@@ -2,7 +2,6 @@ package oembed
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -39,7 +38,7 @@ type provider struct {
 }
 
 // Get gets oembed data.
-func (c *Client) Get(ctx context.Context, url string) (interface{}, error) {
+func (c *Client) Get(ctx context.Context, url string) ([]byte, error) {
 	oembedURL, err := c.find(ctx, url)
 	if err != nil {
 		return nil, err
@@ -58,16 +57,7 @@ func (c *Client) Get(ctx context.Context, url string) (interface{}, error) {
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var data interface{}
-	if err := json.Unmarshal(b, &data); err != nil {
-		return data, err
-	}
-	return data, nil
+	return ioutil.ReadAll(resp.Body)
 }
 
 func (c *Client) find(ctx context.Context, url string) (string, error) {

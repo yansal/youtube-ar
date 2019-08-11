@@ -10,7 +10,8 @@ create table urls (
     status text not null default 'pending',
     error text,
     file text,
-    retries int
+    retries int,
+    oembed jsonb
 );
 
 create function urls_update() returns trigger as $urls_update$

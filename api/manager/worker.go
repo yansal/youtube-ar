@@ -12,6 +12,7 @@ import (
 // Worker is the manager used for worker features.
 type Worker struct {
 	downloader Downloader
+	oembed     OEmbed
 	store      StoreWorker
 }
 
@@ -20,20 +21,26 @@ type Downloader interface {
 	DownloadURL(context.Context, *model.URL) (string, error)
 }
 
+// OEmbed is the oembed interface required by Worker.
+type OEmbed interface {
+	Get(context.Context, string) ([]byte, error)
+}
+
 // StoreWorker is the store interface required by Worker.
 type StoreWorker interface {
 	LockURL(context.Context, *model.URL) error
 	UnlockURL(context.Context, *model.URL) error
+	SetOEmbed(context.Context, *model.URL) error
 }
 
 // NewWorker returns a new Worker.
-func NewWorker(downloader Downloader, store StoreWorker) *Worker {
-	return &Worker{downloader: downloader, store: store}
+func NewWorker(downloader Downloader, oembed OEmbed, store StoreWorker) *Worker {
+	return &Worker{downloader: downloader, oembed: oembed, store: store}
 }
 
 // DownloadURL downloads e.
 func (m *Worker) DownloadURL(ctx context.Context, e event.URL) error {
-	url := &model.URL{ID: e.ID, Status: "processing"}
+	url := &model.URL{ID: e.ID, URL: e.URL, Status: "processing"}
 	if err := m.store.LockURL(ctx, url); err != nil {
 		return err
 	}
@@ -66,4 +73,14 @@ func (m *Worker) DownloadURL(ctx context.Context, e event.URL) error {
 
 	file, perr = m.downloader.DownloadURL(ctx, url)
 	return perr
+}
+
+// GetOEmbed gets oembed.
+func (m *Worker) GetOEmbed(ctx context.Context, e event.URL) error {
+	data, err := m.oembed.Get(ctx, e.URL)
+	if err != nil {
+		return err
+	}
+	url := &model.URL{ID: e.ID, OEmbed: data}
+	return m.store.SetOEmbed(ctx, url)
 }
