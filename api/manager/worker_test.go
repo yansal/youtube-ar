@@ -17,12 +17,12 @@ func assertf(t *testing.T, ok bool, msg string, args ...interface{}) {
 	}
 }
 
-type processorMock struct {
-	processFunc func(context.Context, *model.URL) (string, error)
+type dowloaderMock struct {
+	downloadURLFunc func(context.Context, *model.URL) (string, error)
 }
 
-func (p processorMock) Process(ctx context.Context, url *model.URL) (string, error) {
-	return p.processFunc(ctx, url)
+func (p dowloaderMock) DownloadURL(ctx context.Context, url *model.URL) (string, error) {
+	return p.downloadURLFunc(ctx, url)
 }
 
 type storeMock struct {
@@ -40,8 +40,8 @@ func (s storeMock) UnlockURL(ctx context.Context, url *model.URL) error {
 func TestProcessURLFailure(t *testing.T) {
 	serr := "err"
 	m := Worker{
-		processor: processorMock{
-			processFunc: func(ctx context.Context, url *model.URL) (string, error) {
+		downloader: dowloaderMock{
+			downloadURLFunc: func(ctx context.Context, url *model.URL) (string, error) {
 				return "", errors.New(serr)
 			},
 		},
@@ -70,8 +70,8 @@ func TestProcessURLFailure(t *testing.T) {
 func TestProcessURLSuccess(t *testing.T) {
 	file := "file.go"
 	m := Worker{
-		processor: processorMock{
-			processFunc: func(ctx context.Context, url *model.URL) (string, error) {
+		downloader: dowloaderMock{
+			downloadURLFunc: func(ctx context.Context, url *model.URL) (string, error) {
 				return file, nil
 			},
 		},
@@ -101,8 +101,8 @@ func TestProcessURLPanic(t *testing.T) {
 		serr     = "panic"
 	)
 	m := Worker{
-		processor: processorMock{
-			processFunc: func(ctx context.Context, url *model.URL) (string, error) {
+		downloader: dowloaderMock{
+			downloadURLFunc: func(ctx context.Context, url *model.URL) (string, error) {
 				panic(serr)
 			},
 		},

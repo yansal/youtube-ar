@@ -1,102 +1,70 @@
 package downloader
 
 import (
-	"bufio"
 	"context"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"os/exec"
+	"os"
 	"path/filepath"
-	"sync"
+
+	"github.com/yansal/youtube-ar/api/log"
+	"github.com/yansal/youtube-ar/api/model"
+	"github.com/yansal/youtube-ar/api/youtubedl"
 )
+
+// Downloader is a downloader implementation.
+type Downloader struct {
+	youtubedl YoutubeDL
+	storage   Storage
+	store     Store
+	log       log.Logger
+}
+
+// YoutubeDL is the youtubedl interface required by Downloader.
+type YoutubeDL interface {
+	Download(ctx context.Context, url string) <-chan youtubedl.Event
+}
+
+// Storage is the storage interface required by Downloader.
+type Storage interface {
+	Save(ctx context.Context, path string) (string, error)
+}
+
+// Store is the store interface required by Downloader.
+type Store interface {
+	AppendLog(ctx context.Context, urlID int64, log *model.Log) error
+}
 
 // New returns a new Downloader.
-func New() *Downloader {
-	return &Downloader{}
+func New(youtubedl YoutubeDL, storage Storage, store Store, log log.Logger) *Downloader {
+	return &Downloader{youtubedl: youtubedl, storage: storage, store: store, log: log}
 }
 
-// Downloader is a downloader.
-type Downloader struct{}
-
-// Download downloads url and returns a stream of Event.
-func (p *Downloader) Download(ctx context.Context, url string) <-chan Event {
-	stream := make(chan Event)
-	go func() {
-		defer close(stream)
-
-		dir, err := ioutil.TempDir("", "youtube-ar-")
-		if err != nil {
-			stream <- Event{Type: Failure, Err: err}
-			return
-		}
-
-		cmd := exec.CommandContext(ctx, "youtube-dl", "--newline", "--verbose", url)
-		cmd.Dir = dir
-
-		// stream stderr and stdout
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			stream <- Event{Type: Failure, Err: err}
-			return
-		}
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			stream <- Event{Type: Failure, Err: err}
-			return
-		}
-		var wg sync.WaitGroup
-		wg.Add(2)
-		slurp := func(r io.Reader) {
-			defer wg.Done()
-			s := bufio.NewScanner(r)
-			for s.Scan() {
-				stream <- Event{Type: Log, Log: s.Text()}
+// DownloadURL downloads an url.
+func (p *Downloader) DownloadURL(ctx context.Context, url *model.URL) (string, error) {
+	var (
+		path string
+		err  error
+	)
+	stream := p.youtubedl.Download(ctx, url.URL)
+	for event := range stream {
+		switch event.Type {
+		case youtubedl.Log:
+			if err := p.store.AppendLog(ctx, url.ID, &model.Log{Log: event.Log}); err != nil {
+				p.log.Log(ctx, err.Error())
 			}
+		case youtubedl.Failure:
+			err = event.Err
+		case youtubedl.Success:
+			path = event.Path
 		}
-		go slurp(stderr)
-		go slurp(stdout)
+	}
+	defer os.Remove(path)
+	if err != nil {
+		return "", err
+	}
 
-		if err := cmd.Start(); err != nil {
-			stream <- Event{Type: Failure, Err: err}
-			return
-		}
-
-		wg.Wait()
-		if err := cmd.Wait(); err != nil {
-			stream <- Event{Type: Failure, Err: err}
-			return
-		}
-
-		fis, err := ioutil.ReadDir(dir)
-		if err != nil {
-			stream <- Event{Type: Failure, Err: err}
-			return
-		}
-		if len(fis) != 1 {
-			err := fmt.Errorf("expected 1 file in %s, got %d", dir, len(fis))
-			stream <- Event{Type: Failure, Err: err}
-			return
-		}
-		stream <- Event{Type: Success, Path: filepath.Join(dir, fis[0].Name())}
-	}()
-	return stream
+	uploaded, err := p.storage.Save(ctx, path)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Base(uploaded), nil
 }
-
-// Event is a downloader event.
-type Event struct {
-	Type EventType
-	Log  string
-	Err  error
-	Path string
-}
-
-// EventType is an event type.
-type EventType int
-
-// EventType values.
-const (
-	Log EventType = iota
-	Failure
-	Success
-)

@@ -11,13 +11,13 @@ import (
 
 // Worker is the manager used for worker features.
 type Worker struct {
-	processor Processor
-	store     StoreWorker
+	downloader Downloader
+	store      StoreWorker
 }
 
-// Processor is the processor interface required by Worker.
-type Processor interface {
-	Process(context.Context, *model.URL) (string, error)
+// Downloader is the downloader interface required by Worker.
+type Downloader interface {
+	DownloadURL(context.Context, *model.URL) (string, error)
 }
 
 // StoreWorker is the store interface required by Worker.
@@ -27,8 +27,8 @@ type StoreWorker interface {
 }
 
 // NewWorker returns a new Worker.
-func NewWorker(processor Processor, store StoreWorker) *Worker {
-	return &Worker{processor: processor, store: store}
+func NewWorker(downloader Downloader, store StoreWorker) *Worker {
+	return &Worker{downloader: downloader, store: store}
 }
 
 // ProcessURL processes e.
@@ -64,6 +64,6 @@ func (m *Worker) ProcessURL(ctx context.Context, e event.URL) error {
 		}
 	}()
 
-	file, perr = m.processor.Process(ctx, url)
+	file, perr = m.downloader.DownloadURL(ctx, url)
 	return perr
 }

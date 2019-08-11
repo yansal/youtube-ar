@@ -8,7 +8,6 @@ import (
 
 	"github.com/yansal/youtube-ar/api/broker"
 	"github.com/yansal/youtube-ar/api/broker/redis"
-	"github.com/yansal/youtube-ar/api/downloader"
 	"github.com/yansal/youtube-ar/api/log"
 	"github.com/yansal/youtube-ar/api/manager"
 	"github.com/yansal/youtube-ar/api/oembed"
@@ -18,6 +17,7 @@ import (
 	"github.com/yansal/youtube-ar/api/store"
 	"github.com/yansal/youtube-ar/api/store/db"
 	"github.com/yansal/youtube-ar/api/youtube"
+	"github.com/yansal/youtube-ar/api/youtubedl"
 )
 
 // Cmd is the cmd functional type.
@@ -123,15 +123,15 @@ func DownloadURL(ctx context.Context, args []string) error {
 		return errors.New("url is required")
 	}
 
-	d := downloader.New()
+	d := youtubedl.New()
 	stream := d.Download(ctx, url)
 	for event := range stream {
 		switch event.Type {
-		case downloader.Log:
+		case youtubedl.Log:
 			fmt.Println(event.Log)
-		case downloader.Failure:
+		case youtubedl.Failure:
 			return event.Err
-		case downloader.Success:
+		case youtubedl.Success:
 			fmt.Printf("downloaded url to %s\n", event.Path)
 		}
 	}
