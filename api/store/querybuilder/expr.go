@@ -19,7 +19,7 @@ type Identifier struct {
 
 // In returns a new Expr.
 func (i *Identifier) In(array interface{}) Expr {
-	return &inExpr{identifier: i.identifier, array: newArray(array)}
+	return &infixExpr{left: newIdentifier(i.identifier), op: "IN", right: newArray(array)}
 }
 
 // LessThan returns a new Expr.
@@ -42,18 +42,6 @@ func (i *BoolExpr) And(right Expr) Expr {
 	return &infixExpr{left: i.left, op: "AND", right: right}
 }
 
-type inExpr struct {
-	identifier string
-	array      array
-}
-
-func (e inExpr) build(b *builder) {
-	b.write(e.identifier)
-	b.write(" IN (")
-	e.array.build(b)
-	b.write(")")
-}
-
 func newArray(value interface{}) array {
 	var array array
 	switch v := value.(type) {
@@ -70,12 +58,14 @@ func newArray(value interface{}) array {
 type array []interface{}
 
 func (a array) build(b *builder) {
+	b.write("(")
 	for i := range a {
 		if i > 0 {
 			b.write(", ")
 		}
 		b.bind(a[i])
 	}
+	b.write(")")
 }
 
 type infixExpr struct {
