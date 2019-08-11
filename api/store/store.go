@@ -36,7 +36,7 @@ func (s *Store) LockURL(ctx context.Context, url *model.URL) error {
 			querybuilder.NewIdentifier("id").Equal(url.ID)).
 			And(querybuilder.NewIdentifier("status").Equal("pending")),
 		).
-		Returning("id", "created_at", "updated_at").
+		Returning("url", "created_at", "updated_at").
 		Build()
 	return s.db.QueryRowContext(ctx, query, args...).Scan(&url.URL, &url.CreatedAt, &url.UpdatedAt)
 }
