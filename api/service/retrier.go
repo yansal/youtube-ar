@@ -20,6 +20,7 @@ type Retrier struct {
 // RetrierBroker is the broker interface required by Retrier.
 type RetrierBroker interface {
 	PopNextFailed(context.Context, string) (string, error)
+	RemFailed(context.Context, string, string) error
 }
 
 // RetrierManager is the manager interface required by Retrier.
@@ -38,9 +39,9 @@ func NewRetrier(broker RetrierBroker, manager RetrierManager, store RetrierStore
 }
 
 // RetryNext retries the next failed url.
-func (s *Retrier) RetryNext(ctx context.Context) error {
+func (r *Retrier) RetryNext(ctx context.Context) error {
 	// TODO: use an atomic rpoplpush to ensure we don't lose any failed event?
-	b, err := s.broker.PopNextFailed(ctx, "url-created")
+	b, err := r.broker.PopNextFailed(ctx, "url-created")
 	if err == redis.Nil {
 		return nil
 	} else if err != nil {
@@ -51,15 +52,11 @@ func (s *Retrier) RetryNext(ctx context.Context) error {
 	if err := json.Unmarshal([]byte(b), &e); err != nil {
 		return err
 	}
-	failed, err := s.store.GetURL(ctx, e.ID)
+	failed, err := r.store.GetURL(ctx, e.ID)
 	if err != nil {
 		return err
 	}
 
-	return s.retry(ctx, failed)
-}
-
-func (s *Retrier) retry(ctx context.Context, failed *model.URL) error {
 	if !failed.ShouldRetry() {
 		return nil
 	}
@@ -68,12 +65,35 @@ func (s *Retrier) retry(ctx context.Context, failed *model.URL) error {
 		return nil
 	}
 
+	_, err = r.retry(ctx, failed)
+	return err
+}
+
+// RetryURL retries the url with the given id.
+func (r *Retrier) RetryURL(ctx context.Context, id int64) (*model.URL, error) {
+	e := &event.URL{ID: id}
+	b, err := json.Marshal(e)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: use an atomic rpoplpush to ensure we don't lose any failed event?
+	if err := r.broker.RemFailed(ctx, "url-created", string(b)); err != nil && err != redis.Nil {
+		return nil, err
+	}
+
+	failed, err := r.store.GetURL(ctx, e.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.retry(ctx, failed)
+}
+
+func (r *Retrier) retry(ctx context.Context, failed *model.URL) (*model.URL, error) {
 	url := payload.URL{
 		URL:     failed.URL,
 		Retries: failed.Retries.Int64 + 1,
 	}
-	if _, err := s.manager.CreateURL(ctx, url); err != nil {
-		return err
-	}
-	return nil
+	return r.manager.CreateURL(ctx, url)
 }

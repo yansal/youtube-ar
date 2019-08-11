@@ -85,3 +85,8 @@ type Handler func(ctx context.Context, payload string) error
 func (b *Broker) PopNextFailed(ctx context.Context, queue string) (string, error) {
 	return b.redis.RPop(queue + ":failed").Result()
 }
+
+// RemFailed removes payload from failed queue.
+func (b *Broker) RemFailed(ctx context.Context, queue string, payload string) error {
+	return b.redis.LRem(queue+":failed", 1, payload).Err()
+}

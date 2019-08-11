@@ -49,6 +49,48 @@ func listURLs(m ListURLsManager) handlerFunc {
 	}
 }
 
+// CreateURLManager is the manager interface required by CreateURL.
+type CreateURLManager interface {
+	CreateURL(context.Context, payload.URL) (*model.URL, error)
+}
+
+// CreateURL is the POST /urls handler.
+func CreateURL(m CreateURLManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		serveHTTP(w, r, createURL(m))
+	}
+}
+
+func createURL(m CreateURLManager) handlerFunc {
+	return func(r *http.Request) (*response, error) {
+		var payload payload.URL
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			return nil, httpError{
+				err:  err,
+				code: http.StatusBadRequest,
+			}
+		}
+		if err := payload.Validate(); err != nil {
+			return nil, httpError{
+				err:  err,
+				code: http.StatusBadRequest,
+			}
+		}
+
+		ctx := r.Context()
+		url, err := m.CreateURL(ctx, payload)
+		if err != nil {
+			return nil, err
+		}
+		resource := resource.NewURL(url)
+		b, err := json.Marshal(resource)
+		if err != nil {
+			return nil, err
+		}
+		return &response{body: b, code: http.StatusCreated}, nil
+	}
+}
+
 // DetailURLManager is the manager interface required by DetailURL.
 type DetailURLManager interface {
 	GetURL(context.Context, int64) (*model.URL, error)
@@ -111,39 +153,32 @@ func deleteURL(m DeleteURLManager) handlerFunc {
 	}
 }
 
-// CreateURLManager is the manager interface required by CreateURL.
-type CreateURLManager interface {
-	CreateURL(context.Context, payload.URL) (*model.URL, error)
+// Retrier is the interface required by RetryURL.
+type Retrier interface {
+	RetryURL(context.Context, int64) (*model.URL, error)
 }
 
-// CreateURL is the POST /urls handler.
-func CreateURL(m CreateURLManager) http.HandlerFunc {
+// RetryURL is the POST /urls/:id/retry handler.
+func RetryURL(retrier Retrier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serveHTTP(w, r, createURL(m))
+		serveHTTP(w, r, retryURL(retrier))
 	}
 }
 
-func createURL(m CreateURLManager) handlerFunc {
+func retryURL(retrier Retrier) handlerFunc {
 	return func(r *http.Request) (*response, error) {
-		var payload payload.URL
-		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-			return nil, httpError{
-				err:  err,
-				code: http.StatusBadRequest,
-			}
-		}
-		if err := payload.Validate(); err != nil {
-			return nil, httpError{
-				err:  err,
-				code: http.StatusBadRequest,
-			}
+		ctx := r.Context()
+		match := server.ContextMatch(ctx)
+		id, err := strconv.ParseInt(match[1], 0, 0)
+		if err != nil {
+			return nil, httpError{code: http.StatusNotFound}
 		}
 
-		ctx := r.Context()
-		url, err := m.CreateURL(ctx, payload)
+		url, err := retrier.RetryURL(ctx, id)
 		if err != nil {
 			return nil, err
 		}
+
 		resource := resource.NewURL(url)
 		b, err := json.Marshal(resource)
 		if err != nil {

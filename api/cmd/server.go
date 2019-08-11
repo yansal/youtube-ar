@@ -13,6 +13,7 @@ import (
 	"github.com/yansal/youtube-ar/api/server"
 	"github.com/yansal/youtube-ar/api/server/handler"
 	"github.com/yansal/youtube-ar/api/server/middleware"
+	"github.com/yansal/youtube-ar/api/service"
 	"github.com/yansal/youtube-ar/api/store"
 	"github.com/yansal/youtube-ar/api/store/db"
 )
@@ -34,10 +35,13 @@ func Server(ctx context.Context, args []string) error {
 
 	mux := server.NewMux()
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls$`), handler.ListURLs(manager))
+	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls$`), handler.CreateURL(manager))
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)$`), handler.DetailURL(manager))
 	mux.HandleFunc(http.MethodDelete, regexp.MustCompile(`^/urls/(\d+)$`), handler.DeleteURL(manager))
-	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls$`), handler.CreateURL(manager))
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)/logs$`), handler.ListLogs(manager))
+
+	retrier := service.NewRetrier(broker, manager, store)
+	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls/(\d+)/retry$`), handler.RetryURL(retrier))
 
 	handler := middleware.Log(mux, log)
 	handler = middleware.CORS(handler)
