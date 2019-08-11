@@ -34,7 +34,7 @@ func Worker(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	processor := processor.New(downloader.New(), storage, store)
+	processor := processor.New(downloader.New(), storage, store, log)
 	m := manager.NewWorker(processor, store)
 
 	w := worker.New(b, map[string]broker.Handler{

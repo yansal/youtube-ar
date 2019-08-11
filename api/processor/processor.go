@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/yansal/youtube-ar/api/downloader"
+	"github.com/yansal/youtube-ar/api/log"
 	"github.com/yansal/youtube-ar/api/model"
 )
 
@@ -14,6 +15,7 @@ type Processor struct {
 	downloader Downloader
 	storage    Storage
 	store      Store
+	log        log.Logger
 }
 
 // Downloader is the downloader interface required by Processor.
@@ -32,8 +34,8 @@ type Store interface {
 }
 
 // New returns a new Processor.
-func New(downloader Downloader, storage Storage, store Store) *Processor {
-	return &Processor{downloader: downloader, storage: storage, store: store}
+func New(downloader Downloader, storage Storage, store Store, log log.Logger) *Processor {
+	return &Processor{downloader: downloader, storage: storage, store: store, log: log}
 }
 
 // Process processes an url.
@@ -47,7 +49,7 @@ func (p *Processor) Process(ctx context.Context, url *model.URL) (string, error)
 		switch event.Type {
 		case downloader.Log:
 			if err := p.store.AppendLog(ctx, url.ID, &model.Log{Log: event.Log}); err != nil {
-				// TODO: log err
+				p.log.Log(ctx, err.Error())
 			}
 		case downloader.Failure:
 			err = event.Err
