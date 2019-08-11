@@ -5,6 +5,7 @@ create table urls (
     url text not null,
     created_at timestamp with time zone not null default now(),
     updated_at timestamp with time zone not null default now(),
+    deleted_at timestamp with time zone,
     logs text[],
     status text not null default 'pending',
     error text,
