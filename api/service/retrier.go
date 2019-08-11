@@ -38,10 +38,10 @@ func NewRetrier(broker RetrierBroker, manager RetrierManager, store RetrierStore
 	return &Retrier{broker: broker, manager: manager, store: store}
 }
 
-// RetryNext retries the next failed url.
-func (r *Retrier) RetryNext(ctx context.Context) error {
+// RetryNextDownloadURL retries the next failed download-url event.
+func (r *Retrier) RetryNextDownloadURL(ctx context.Context) error {
 	// TODO: use an atomic rpoplpush to ensure we don't lose any failed event?
-	b, err := r.broker.PopNextFailed(ctx, "url-created")
+	b, err := r.broker.PopNextFailed(ctx, "download-url")
 	if err == redis.Nil {
 		return nil
 	} else if err != nil {
@@ -69,8 +69,8 @@ func (r *Retrier) RetryNext(ctx context.Context) error {
 	return err
 }
 
-// RetryURL retries the url with the given id.
-func (r *Retrier) RetryURL(ctx context.Context, id int64) (*model.URL, error) {
+// RetryDownloadURL retries the download-url event with the given id.
+func (r *Retrier) RetryDownloadURL(ctx context.Context, id int64) (*model.URL, error) {
 	e := &event.URL{ID: id}
 	b, err := json.Marshal(e)
 	if err != nil {
@@ -78,7 +78,7 @@ func (r *Retrier) RetryURL(ctx context.Context, id int64) (*model.URL, error) {
 	}
 
 	// TODO: use an atomic rpoplpush to ensure we don't lose any failed event?
-	if err := r.broker.RemFailed(ctx, "url-created", string(b)); err != nil && err != redis.Nil {
+	if err := r.broker.RemFailed(ctx, "download-url", string(b)); err != nil && err != redis.Nil {
 		return nil, err
 	}
 

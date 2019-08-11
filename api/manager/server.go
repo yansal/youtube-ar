@@ -51,7 +51,7 @@ func (m *Server) CreateURL(ctx context.Context, p payload.URL) (*model.URL, erro
 	if err != nil {
 		return nil, err
 	}
-	return url, m.broker.Send(ctx, "url-created", string(b))
+	return url, m.broker.Send(ctx, "download-url", string(b))
 }
 
 // GetURL gets an url.

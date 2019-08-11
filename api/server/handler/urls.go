@@ -159,13 +159,13 @@ func deleteURL(m DeleteURLManager) handlerFunc {
 	}
 }
 
-// Retrier is the interface required by RetryURL.
+// Retrier is the interface required by RetryDownloadURL.
 type Retrier interface {
-	RetryURL(context.Context, int64) (*model.URL, error)
+	RetryDownloadURL(context.Context, int64) (*model.URL, error)
 }
 
-// RetryURL is the POST /urls/:id/retry handler.
-func RetryURL(retrier Retrier, s URLSerializer) http.HandlerFunc {
+// RetryDownloadURL is the POST /urls/:id/retry handler.
+func RetryDownloadURL(retrier Retrier, s URLSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serveHTTP(w, r, retryURL(retrier, s))
 	}
@@ -180,7 +180,7 @@ func retryURL(retrier Retrier, s URLSerializer) handlerFunc {
 			return nil, httpError{code: http.StatusNotFound}
 		}
 
-		url, err := retrier.RetryURL(ctx, id)
+		url, err := retrier.RetryDownloadURL(ctx, id)
 		if err != nil {
 			return nil, err
 		}

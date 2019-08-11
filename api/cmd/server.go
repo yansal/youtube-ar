@@ -43,7 +43,7 @@ func Server(ctx context.Context, args []string) error {
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)/logs$`), handler.ListLogs(manager, serializer))
 
 	retrier := service.NewRetrier(broker, manager, store)
-	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls/(\d+)/retry$`), handler.RetryURL(retrier, serializer))
+	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls/(\d+)/retry$`), handler.RetryDownloadURL(retrier, serializer))
 
 	handler := middleware.Log(mux, log)
 	handler = middleware.CORS(handler)

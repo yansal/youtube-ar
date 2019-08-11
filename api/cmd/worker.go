@@ -38,7 +38,7 @@ func Worker(ctx context.Context, args []string) error {
 	m := manager.NewWorker(downloader, store)
 
 	w := worker.New(b, map[string]broker.Handler{
-		"url-created": handler.URLCreated(m),
+		"download-url": handler.DownloadURL(m),
 	})
 	return w.Listen(ctx)
 }

@@ -8,13 +8,13 @@ import (
 	"github.com/yansal/youtube-ar/api/event"
 )
 
-// Manager is the manager interface required by URLCreated.
+// Manager is the manager interface required by DownloadURL.
 type Manager interface {
 	DownloadURL(context.Context, event.URL) error
 }
 
-// URLCreated is the url-created handler.
-func URLCreated(m Manager) broker.Handler {
+// DownloadURL is the download-url handler.
+func DownloadURL(m Manager) broker.Handler {
 	return func(ctx context.Context, payload string) error {
 		var e event.URL
 		if err := json.Unmarshal([]byte(payload), &e); err != nil {

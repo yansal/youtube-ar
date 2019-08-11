@@ -199,8 +199,8 @@ func ListURLs(ctx context.Context, args []string) error {
 	return nil
 }
 
-// RetryNext is the retry-next cmd.
-func RetryNext(ctx context.Context, args []string) error {
+// RetryNextDownloadURL is the retry-next-download-url cmd.
+func RetryNextDownloadURL(ctx context.Context, args []string) error {
 	log := log.New()
 	redis, err := redis.New(log)
 	if err != nil {
@@ -215,5 +215,5 @@ func RetryNext(ctx context.Context, args []string) error {
 	manager := manager.NewServer(broker, store)
 
 	retrier := service.NewRetrier(broker, manager, store)
-	return retrier.RetryNext(ctx)
+	return retrier.RetryNextDownloadURL(ctx)
 }
