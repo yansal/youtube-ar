@@ -11,6 +11,7 @@ import (
 	"github.com/yansal/youtube-ar/api/downloader"
 	"github.com/yansal/youtube-ar/api/log"
 	"github.com/yansal/youtube-ar/api/manager"
+	"github.com/yansal/youtube-ar/api/oembed"
 	"github.com/yansal/youtube-ar/api/payload"
 	"github.com/yansal/youtube-ar/api/query"
 	"github.com/yansal/youtube-ar/api/service"
@@ -85,6 +86,29 @@ func CreateURLsFromPlaylist(ctx context.Context, args []string) error {
 	playlistLoader := service.NewPlaylistLoader(manager, store, youtube.New(log))
 
 	return playlistLoader.CreateURLsFromYoutube(ctx, playlist)
+}
+
+// GetOembed is the get-oembed cmd.
+func GetOembed(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("get-oembed", flag.ExitOnError)
+	var url string
+	fs.StringVar(&url, "url", "", "url")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if url == "" {
+		return errors.New("url is required")
+	}
+
+	log := log.New()
+	oe := oembed.NewClient(log)
+
+	data, err := oe.Get(ctx, url)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%+v\n", data)
+	return nil
 }
 
 // DownloadURL is the download-url cmd.

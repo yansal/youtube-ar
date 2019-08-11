@@ -10,7 +10,7 @@ import (
 
 func usage() string {
 	// TODO: generate automatically from commands in package cmd
-	return `usage: youtube-ar [create-url|create-urls-from-playlist|download-url|list-logs|list-urls|retry-next|server|worker]`
+	return `usage: youtube-ar [create-url|create-urls-from-playlist|download-url|get-oembed|list-logs|list-urls|retry-next|server|worker]`
 }
 
 func main() {
@@ -26,6 +26,7 @@ func main() {
 		"create-url":                cmd.CreateURL,
 		"create-urls-from-playlist": cmd.CreateURLsFromPlaylist,
 		"download-url":              cmd.DownloadURL,
+		"get-oembed":                cmd.GetOembed,
 		"list-logs":                 cmd.ListLogs,
 		"list-urls":                 cmd.ListURLs,
 		"retry-next":                cmd.RetryNext,

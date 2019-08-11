@@ -9,5 +9,6 @@ require (
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/yansal/query v0.0.0-20190811123741-1e5b8dc4d6d0
 	github.com/yansal/sqldriver v0.0.0-20190804194223-fece0ffba949
+	golang.org/x/net v0.0.0-20180906233101-161cd47e91fd
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
 )
