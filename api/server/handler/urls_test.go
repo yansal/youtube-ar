@@ -9,6 +9,7 @@ import (
 
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/query"
+	"github.com/yansal/youtube-ar/api/resource"
 )
 
 func assertf(t *testing.T, ok bool, msg string, args ...interface{}) {
@@ -26,6 +27,11 @@ func (m mockManager) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, 
 	return m.listURLsFunc(ctx, q)
 }
 
+type mockSerializer struct{}
+
+func (mockSerializer) NewURLs([]model.URL) *resource.URLs { return nil }
+func (mockSerializer) NewURL(*model.URL) *resource.URL    { return nil }
+
 func TestListURLs(t *testing.T) {
 	h := listURLs(mockManager{
 		listURLsFunc: func(ctx context.Context, q *query.URLs) ([]model.URL, error) {
@@ -34,7 +40,7 @@ func TestListURLs(t *testing.T) {
 			assertf(t, q.Status == nil, "expected status to be nil, got %v", q.Status)
 			return nil, nil
 		},
-	})
+	}, mockSerializer{})
 
 	var u url.URL
 	req, err := http.NewRequest("", u.String(), nil)
@@ -63,7 +69,7 @@ func TestListURLsQuery(t *testing.T) {
 			}
 			return nil, nil
 		},
-	})
+	}, mockSerializer{})
 
 	v := url.Values{
 		"status": status,
