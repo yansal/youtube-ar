@@ -25,8 +25,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
-github.com/yansal/query v0.0.0-20190807194303-80254a9ac300 h1:RLjKL2Lgwq591IxYdBasKOolDSvqXwzqVYMCzlhFvPE=
-github.com/yansal/query v0.0.0-20190807194303-80254a9ac300/go.mod h1:0iSs/0NL/h6tEDJSChZUCUPKTOq7sd3HiMtHsFhxR1I=
+github.com/yansal/query v0.0.0-20190811123741-1e5b8dc4d6d0 h1:/yg5MthoJcJy1T1XFu+nCLwAqjzhK55bFRrI9yVEmoE=
+github.com/yansal/query v0.0.0-20190811123741-1e5b8dc4d6d0/go.mod h1:0iSs/0NL/h6tEDJSChZUCUPKTOq7sd3HiMtHsFhxR1I=
 github.com/yansal/sqldriver v0.0.0-20190804194223-fece0ffba949 h1:WvqBarktR5eh2+7ultPoYAY8DvnTtammTt9tJQTgWcU=
 github.com/yansal/sqldriver v0.0.0-20190804194223-fece0ffba949/go.mod h1:ddlaulyfmEV6F813fF6qWzHAqKbOGmVD9UBSXvC93Ks=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd h1:nTDtHvHSdCn1m6ITfMRqtOd/9+7a3s8RBNOZ3eYZzJA=
