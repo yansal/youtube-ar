@@ -37,7 +37,7 @@ func (s storeMock) UnlockURL(ctx context.Context, url *model.URL) error {
 	return s.unlockURLFunc(ctx, url)
 }
 
-func TestProcessURLFailure(t *testing.T) {
+func TestDownloadURLFailure(t *testing.T) {
 	serr := "err"
 	m := Worker{
 		downloader: dowloaderMock{
@@ -61,13 +61,13 @@ func TestProcessURLFailure(t *testing.T) {
 		},
 	}
 
-	err := m.ProcessURL(context.Background(), event.URL{})
+	err := m.DownloadURL(context.Background(), event.URL{})
 	assertf(t, err.Error() == serr,
 		`expected err to be %q, got %+v`, serr, err,
 	)
 }
 
-func TestProcessURLSuccess(t *testing.T) {
+func TestDownloadURLSuccess(t *testing.T) {
 	file := "file.go"
 	m := Worker{
 		downloader: dowloaderMock{
@@ -91,11 +91,11 @@ func TestProcessURLSuccess(t *testing.T) {
 		},
 	}
 
-	err := m.ProcessURL(context.Background(), event.URL{})
+	err := m.DownloadURL(context.Background(), event.URL{})
 	assertf(t, err == nil, `expected err to be nil, got %+v`, err)
 }
 
-func TestProcessURLPanic(t *testing.T) {
+func TestDownloadURLPanic(t *testing.T) {
 	var (
 		unlocked bool
 		serr     = "panic"
@@ -131,6 +131,6 @@ func TestProcessURLPanic(t *testing.T) {
 			assertf(t, unlocked, `expected the unlock method to be called`)
 		}
 	}()
-	_ = m.ProcessURL(context.Background(), event.URL{})
+	_ = m.DownloadURL(context.Background(), event.URL{})
 	t.Error("expected panic")
 }

@@ -10,7 +10,7 @@ import (
 
 // Manager is the manager interface required by URLCreated.
 type Manager interface {
-	ProcessURL(context.Context, event.URL) error
+	DownloadURL(context.Context, event.URL) error
 }
 
 // URLCreated is the url-created handler.
@@ -21,6 +21,6 @@ func URLCreated(m Manager) broker.Handler {
 			return err
 		}
 
-		return m.ProcessURL(ctx, e)
+		return m.DownloadURL(ctx, e)
 	}
 }

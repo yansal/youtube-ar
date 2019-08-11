@@ -31,8 +31,8 @@ func NewWorker(downloader Downloader, store StoreWorker) *Worker {
 	return &Worker{downloader: downloader, store: store}
 }
 
-// ProcessURL processes e.
-func (m *Worker) ProcessURL(ctx context.Context, e event.URL) error {
+// DownloadURL downloads e.
+func (m *Worker) DownloadURL(ctx context.Context, e event.URL) error {
 	url := &model.URL{ID: e.ID, Status: "processing"}
 	if err := m.store.LockURL(ctx, url); err != nil {
 		return err
