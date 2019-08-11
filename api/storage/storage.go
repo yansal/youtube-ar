@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -43,6 +44,16 @@ func (s *Storage) Save(ctx context.Context, path string) (string, error) {
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(filepath.Base(path)),
 	}
+
+	switch {
+	case strings.HasSuffix(path, ".mp3"):
+		input.ContentType = aws.String("audio/mpeg")
+	case strings.HasSuffix(path, ".mp4"):
+		input.ContentType = aws.String("video/mp4")
+	case strings.HasSuffix(path, ".webm"):
+		input.ContentType = aws.String("video/webm")
+	}
+
 	if _, err := s.s3.PutObjectWithContext(ctx, input); err != nil {
 		return "", err
 	}
