@@ -6,6 +6,7 @@ import (
 
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/query"
+	"github.com/yansal/youtube-ar/api/store/querybuilder"
 )
 
 // New returns a new store.
@@ -63,19 +64,7 @@ func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 
 // ListURLs lists urls.
 func (s *Store) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error) {
-	// TODO: add filters
-	var (
-		query string
-		args  []interface{}
-	)
-	if q.Cursor == 0 {
-		query = `select id, url, created_at, updated_at, status, error, file, retries from urls order by id desc limit $1`
-		args = []interface{}{q.Limit}
-	} else {
-		query = `select id, url, created_at, updated_at, status, error, file, retries from urls where id < $1 order by id desc limit $2`
-		args = []interface{}{q.Cursor, q.Limit}
-	}
-
+	query, args := buildListURLs(q)
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -93,6 +82,30 @@ func (s *Store) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error
 	}
 
 	return urls, nil
+}
+
+func buildListURLs(q *query.URLs) (string, []interface{}) {
+	stmt := querybuilder.NewSelect(
+		"id", "url", "created_at", "updated_at", "status", "error", "file", "retries",
+	).From("urls")
+
+	var expr querybuilder.Expr
+	if q.Status != nil {
+		expr = querybuilder.NewIdentifier("status").In(q.Status)
+	}
+	if q.Cursor != 0 {
+		expr2 := querybuilder.NewIdentifier("id").LessThan(q.Cursor)
+		if expr != nil {
+			expr = querybuilder.NewBoolExpr(expr).And(expr2)
+		} else {
+			expr = expr2
+		}
+	}
+	if expr != nil {
+		stmt = stmt.Where(expr)
+	}
+
+	return stmt.OrderBy("id desc").Limit(q.Limit).Build()
 }
 
 // ListLogs list logs.

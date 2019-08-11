@@ -48,7 +48,10 @@ func NewURLs(urls []model.URL) *URLs {
 		url := NewURL(&urls[i])
 		resource.URLs = append(resource.URLs, *url)
 	}
-	resource.NextCursor = urls[len(urls)-1].ID
+	len := len(urls)
+	if len > 0 {
+		resource.NextCursor = urls[len-1].ID
+	}
 	return &resource
 }
 
