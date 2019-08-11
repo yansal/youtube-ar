@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"os"
 	"time"
 
 	"github.com/yansal/youtube-ar/api/model"
@@ -30,7 +31,7 @@ func NewURL(url *model.URL) *URL {
 		resource.Error = url.Error.String
 	}
 	if url.File.Valid {
-		resource.File = url.File.String
+		resource.File = "https://" + os.Getenv("S3_BUCKET") + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + url.File.String
 	}
 	return &resource
 }
