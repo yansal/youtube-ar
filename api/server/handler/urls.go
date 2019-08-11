@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -119,7 +120,9 @@ func detailURL(m DetailURLManager, s URLSerializer) handlerFunc {
 		}
 
 		url, err := m.GetURL(ctx, id)
-		if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, httpError{code: http.StatusNotFound}
+		} else if err != nil {
 			return nil, err
 		}
 		resource := s.NewURL(url)
