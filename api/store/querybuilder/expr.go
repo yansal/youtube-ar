@@ -19,17 +19,17 @@ type Identifier struct {
 
 // In returns a new Expr.
 func (i *Identifier) In(array interface{}) Expr {
-	return &infixExpr{left: newIdentifier(i.identifier), op: "IN", right: newArray(array)}
+	return &infixExpr{left: newValue(i.identifier), op: "IN", right: newArray(array)}
 }
 
 // LessThan returns a new Expr.
 func (i *Identifier) LessThan(value interface{}) Expr {
-	return &infixExpr{left: newIdentifier(i.identifier), op: "<", right: newValue(value)}
+	return &infixExpr{left: newValue(i.identifier), op: "<", right: NewBindValue(value)}
 }
 
 // Equal returns a new Expr.
 func (i *Identifier) Equal(value interface{}) Expr {
-	return &infixExpr{left: newIdentifier(i.identifier), op: "=", right: newValue(value)}
+	return &infixExpr{left: newValue(i.identifier), op: "=", right: NewBindValue(value)}
 }
 
 // NewBoolExpr returns a new boolean expression.
@@ -47,6 +47,36 @@ func (i *BoolExpr) And(right Expr) Expr {
 	return &infixExpr{left: i.left, op: "AND", right: right}
 }
 
+// NewCallExpr returns a new call expression.
+func NewCallExpr(fun string, args []interface{}) Expr {
+	callargs := make([]Expr, 0, len(args))
+	for _, arg := range args {
+		if expr, ok := arg.(Expr); ok {
+			callargs = append(callargs, expr)
+		} else {
+			callargs = append(callargs, newValue(arg))
+		}
+	}
+	return &callExpr{fun: fun, args: callargs}
+}
+
+type callExpr struct {
+	fun  string
+	args []Expr
+}
+
+func (e callExpr) build(b *builder) {
+	b.write(e.fun)
+	b.write("(")
+	for i, arg := range e.args {
+		if i > 0 {
+			b.write(", ")
+		}
+		arg.build(b)
+	}
+	b.write(")")
+}
+
 func newArray(value interface{}) array {
 	var array array
 	switch v := value.(type) {
@@ -60,7 +90,7 @@ func newArray(value interface{}) array {
 	return array
 }
 
-type array []interface{}
+type array []string
 
 func (a array) build(b *builder) {
 	b.write("(")
@@ -87,26 +117,32 @@ func (e infixExpr) build(b *builder) {
 	e.right.build(b)
 }
 
-func newValue(v interface{}) Expr {
-	return value{v: v}
+// NewBindValue returns a new bind value.
+func NewBindValue(v interface{}) Expr {
+	return bindValue{v: v}
 }
 
-type value struct {
+type bindValue struct {
 	v interface{}
 }
 
-func (v value) build(b *builder) {
+func (v bindValue) build(b *builder) {
 	b.bind(v.v)
 }
 
-func newIdentifier(i string) Expr {
-	return identifier{s: i}
+func newValue(v interface{}) Expr {
+	switch vv := v.(type) {
+	case string:
+		return value{s: vv}
+	default:
+		panic(fmt.Sprintf("don't know how to write a value of type %T", v))
+	}
 }
 
-type identifier struct {
+type value struct {
 	s string
 }
 
-func (i identifier) build(b *builder) {
-	b.write(i.s)
+func (v value) build(b *builder) {
+	b.write(v.s)
 }

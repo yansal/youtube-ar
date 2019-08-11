@@ -62,7 +62,13 @@ func (set set) build(b *builder) {
 		}
 		b.write(k)
 		b.write(" = ")
-		b.bind(v)
+
+		if expr, ok := v.(Expr); ok {
+			expr.build(b)
+		} else {
+			b.bind(v)
+		}
+
 		needcomma = true
 	}
 }

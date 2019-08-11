@@ -25,6 +25,16 @@ func New(logger log.Logger) (*sql.DB, error) {
 
 	connector := &sqldriver.Connector{
 		Connector: pqconnector,
+		ExecContextFunc: func(ctx context.Context, query string, args []driver.NamedValue, duration time.Duration, err error) {
+			fields := []log.Field{
+				log.String("query", query),
+				log.Stringer("duration", duration),
+			}
+			if err != nil {
+				fields = append(fields, log.Error("error", err))
+			}
+			logger.Log(ctx, "sql exec", fields...)
+		},
 		QueryContextFunc: func(ctx context.Context, query string, args []driver.NamedValue, duration time.Duration, err error) {
 			fields := []log.Field{
 				log.String("query", query),
