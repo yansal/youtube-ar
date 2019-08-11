@@ -19,4 +19,3 @@ An API instance is deployed at https://youtube-ar-2.herokuapp.com/.
 * filter urls by status
 * soft delete url
 * thumbnail via oembed
-* logfmt
