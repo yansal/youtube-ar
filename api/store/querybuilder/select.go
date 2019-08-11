@@ -12,6 +12,7 @@ type Select struct {
 	where   *where
 	orderby *orderby
 	limit   *limit
+	offset  *offset
 }
 
 // From adds a from clause.
@@ -35,6 +36,12 @@ func (stmt *Select) OrderBy(s string) *Select {
 // Limit adds a limit.
 func (stmt *Select) Limit(i int64) *Select {
 	stmt.limit = newLimit(i)
+	return stmt
+}
+
+// Offset adds an offset.
+func (stmt *Select) Offset(i int64) *Select {
+	stmt.offset = newOffset(i)
 	return stmt
 }
 
@@ -62,6 +69,11 @@ func (stmt *Select) Build() (string, []interface{}) {
 	if stmt.limit != nil {
 		b.write(" ")
 		stmt.limit.build(b)
+	}
+
+	if stmt.offset != nil {
+		b.write(" ")
+		stmt.offset.build(b)
 	}
 
 	return b.buf.String(), b.params
@@ -128,4 +140,14 @@ func (limit limit) build(b *builder) {
 	b.write("LIMIT")
 	b.write(" ")
 	b.bind(limit.i)
+}
+
+func newOffset(i int64) *offset { return &offset{i: i} }
+
+type offset struct{ i int64 }
+
+func (offset offset) build(b *builder) {
+	b.write("OFFSET")
+	b.write(" ")
+	b.bind(offset.i)
 }
