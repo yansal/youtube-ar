@@ -83,6 +83,34 @@ func detailURL(m DetailURLManager) handlerFunc {
 	}
 }
 
+// DeleteURLManager is the manager interface required by DeleteURL.
+type DeleteURLManager interface {
+	DeleteURL(context.Context, int64) error
+}
+
+// DeleteURL is the GET /urls handler.
+func DeleteURL(m DeleteURLManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		serveHTTP(w, r, deleteURL(m))
+	}
+}
+
+func deleteURL(m DeleteURLManager) handlerFunc {
+	return func(r *http.Request) (*response, error) {
+		ctx := r.Context()
+		match := server.ContextMatch(ctx)
+		id, err := strconv.ParseInt(match[1], 0, 0)
+		if err != nil {
+			return nil, httpError{code: http.StatusNotFound}
+		}
+
+		if err := m.DeleteURL(ctx, id); err != nil {
+			return nil, err
+		}
+		return &response{code: http.StatusNoContent}, nil
+	}
+}
+
 // CreateURLManager is the manager interface required by CreateURL.
 type CreateURLManager interface {
 	CreateURL(context.Context, payload.URL) (*model.URL, error)

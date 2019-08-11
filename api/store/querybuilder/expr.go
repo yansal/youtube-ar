@@ -32,6 +32,11 @@ func (i *Identifier) Equal(value interface{}) Expr {
 	return &infixExpr{left: newValue(i.identifier), op: "=", right: NewBindValue(value)}
 }
 
+// IsNull returns a new Expr.
+func (i *Identifier) IsNull() Expr {
+	return &infixExpr{left: newValue(i.identifier), op: "IS", right: newValue("NULL")}
+}
+
 // NewBoolExpr returns a new boolean expression.
 func NewBoolExpr(left Expr) *BoolExpr {
 	return &BoolExpr{left: left}

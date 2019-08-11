@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/query"
@@ -68,7 +69,9 @@ func (s *Store) AppendLog(ctx context.Context, urlID int64, log *model.Log) erro
 func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 	query, args := querybuilder.NewSelect("id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "logs").
 		From("urls").
-		Where(querybuilder.NewIdentifier("id").Equal(id)).
+		Where(querybuilder.NewBoolExpr(
+			querybuilder.NewIdentifier("id").Equal(id)).And(
+			querybuilder.NewIdentifier("deleted_at").IsNull())).
 		Build()
 
 	var url model.URL
@@ -78,6 +81,17 @@ func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 		return nil, err
 	}
 	return &url, nil
+}
+
+// DeleteURL deletes the url with id.
+func (s *Store) DeleteURL(ctx context.Context, id int64) error {
+	query, args := querybuilder.NewUpdate("urls",
+		map[string]interface{}{"deleted_at": time.Now()}).
+		Where(querybuilder.NewIdentifier("id").Equal(id)).
+		Build()
+
+	_, err := s.db.ExecContext(ctx, query, args...)
+	return err
 }
 
 // ListURLs lists urls.
@@ -107,23 +121,19 @@ func buildListURLs(q *query.URLs) (string, []interface{}) {
 		"id", "url", "created_at", "updated_at", "status", "error", "file", "retries",
 	).From("urls")
 
-	var expr querybuilder.Expr
+	expr := querybuilder.NewIdentifier("deleted_at").IsNull()
 	if q.Status != nil {
-		expr = querybuilder.NewIdentifier("status").In(q.Status)
+		expr = querybuilder.NewBoolExpr(expr).And(
+			querybuilder.NewIdentifier("status").In(q.Status),
+		)
 	}
 	if q.Cursor != 0 {
-		expr2 := querybuilder.NewIdentifier("id").LessThan(q.Cursor)
-		if expr != nil {
-			expr = querybuilder.NewBoolExpr(expr).And(expr2)
-		} else {
-			expr = expr2
-		}
-	}
-	if expr != nil {
-		stmt = stmt.Where(expr)
+		expr = querybuilder.NewBoolExpr(expr).And(
+			querybuilder.NewIdentifier("id").LessThan(q.Cursor),
+		)
 	}
 
-	return stmt.OrderBy("id desc").Limit(q.Limit).Build()
+	return stmt.Where(expr).OrderBy("id desc").Limit(q.Limit).Build()
 }
 
 // ListLogs list logs.
