@@ -128,9 +128,14 @@ func buildListURLs(q *query.URLs) (string, []interface{}) {
 
 // ListLogs list logs.
 func (s *Store) ListLogs(ctx context.Context, urlID int64, q *query.Logs) ([]model.Log, error) {
-	query := `select unnest(logs[$1:]) from urls where id = $2`
-	cursor := q.Cursor + 1
-	args := []interface{}{cursor, urlID}
+	query, args := querybuilder.NewSelect(
+		querybuilder.NewCallExpr("unnest",
+			querybuilder.NewIndexExpr("logs", querybuilder.NewBindValue(q.Cursor+1))),
+	).
+		From("urls").
+		Where(querybuilder.NewIdentifier("id").Equal(urlID)).
+		Build()
+
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err

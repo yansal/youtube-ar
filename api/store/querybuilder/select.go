@@ -1,13 +1,13 @@
 package querybuilder
 
 // NewSelect returns a new select statement.
-func NewSelect(columns ...string) *Select {
-	return &Select{columns: columns}
+func NewSelect(columns ...interface{}) *Select {
+	return &Select{columns: newColumns(columns...)}
 }
 
 // A Select is a select statement.
 type Select struct {
-	columns []string
+	columns *columns
 	from    *from
 	where   *where
 	orderby *orderby
@@ -42,12 +42,7 @@ func (stmt *Select) Limit(i int64) *Select {
 func (stmt *Select) Build() (string, []interface{}) {
 	b := new(builder)
 	b.write("SELECT ")
-	for i := range stmt.columns {
-		if i > 0 {
-			b.write(", ")
-		}
-		b.write(stmt.columns[i])
-	}
+	stmt.columns.build(b)
 
 	if stmt.from != nil {
 		b.write(" ")
@@ -70,6 +65,29 @@ func (stmt *Select) Build() (string, []interface{}) {
 	}
 
 	return b.buf.String(), b.params
+}
+
+func newColumns(c ...interface{}) *columns {
+	exprs := make([]Expr, 0, len(c))
+	for _, col := range c {
+		if expr, ok := col.(Expr); ok {
+			exprs = append(exprs, expr)
+		} else {
+			exprs = append(exprs, newValue(col))
+		}
+	}
+	return &columns{exprs: exprs}
+}
+
+type columns struct{ exprs []Expr }
+
+func (c columns) build(b *builder) {
+	for i := range c.exprs {
+		if i > 0 {
+			b.write(", ")
+		}
+		c.exprs[i].build(b)
+	}
 }
 
 func newFrom(table string) *from { return &from{table: table} }

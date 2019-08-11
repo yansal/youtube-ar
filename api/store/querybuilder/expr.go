@@ -48,7 +48,7 @@ func (i *BoolExpr) And(right Expr) Expr {
 }
 
 // NewCallExpr returns a new call expression.
-func NewCallExpr(fun string, args []interface{}) Expr {
+func NewCallExpr(fun string, args ...interface{}) Expr {
 	callargs := make([]Expr, 0, len(args))
 	for _, arg := range args {
 		if expr, ok := arg.(Expr); ok {
@@ -75,6 +75,29 @@ func (e callExpr) build(b *builder) {
 		arg.build(b)
 	}
 	b.write(")")
+}
+
+// NewIndexExpr returns a new index expression.
+func NewIndexExpr(array string, lower interface{}) Expr {
+	var lowerexpr Expr
+	if expr, ok := lower.(Expr); ok {
+		lowerexpr = expr
+	} else {
+		lowerexpr = newValue(lower)
+	}
+	return &indexExpr{array: array, lower: lowerexpr}
+}
+
+type indexExpr struct {
+	array string
+	lower Expr
+}
+
+func (e indexExpr) build(b *builder) {
+	b.write(e.array)
+	b.write("[")
+	e.lower.build(b)
+	b.write(":]")
 }
 
 func newArray(value interface{}) array {

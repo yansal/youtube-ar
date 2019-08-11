@@ -19,10 +19,8 @@ func (stmt *Update) Build() (string, []interface{}) {
 
 	b.write("UPDATE ")
 	b.write(stmt.table)
-	if stmt.set != nil {
-		b.write(" ")
-		stmt.set.build(b)
-	}
+	b.write(" ")
+	stmt.set.build(b)
 
 	if stmt.where != nil {
 		b.write(" ")
@@ -49,25 +47,30 @@ func (stmt *Update) Returning(values ...string) *Update {
 	return stmt
 }
 
-func newSet(v map[string]interface{}) *set { return &set{v: v} }
+func newSet(m map[string]interface{}) *set {
+	exprs := make(map[string]Expr, len(m))
+	for k, v := range m {
+		if expr, ok := v.(Expr); ok {
+			exprs[k] = expr
+		} else {
+			exprs[k] = NewBindValue(v)
+		}
+	}
+	return &set{exprs: exprs}
+}
 
-type set struct{ v map[string]interface{} }
+type set struct{ exprs map[string]Expr }
 
 func (set set) build(b *builder) {
 	b.write("SET ")
 	var needcomma bool
-	for k, v := range set.v {
+	for k, expr := range set.exprs {
 		if needcomma {
 			b.write(", ")
 		}
 		b.write(k)
 		b.write(" = ")
-
-		if expr, ok := v.(Expr); ok {
-			expr.build(b)
-		} else {
-			b.bind(v)
-		}
+		expr.build(b)
 
 		needcomma = true
 	}
