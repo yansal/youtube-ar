@@ -158,7 +158,7 @@ func newValue(v interface{}) Expr {
 	case string:
 		return value{s: vv}
 	default:
-		panic(fmt.Sprintf("don't know how to write a value of type %T", v))
+		panic(fmt.Sprintf("don't know how to write value %#v", v))
 	}
 }
 

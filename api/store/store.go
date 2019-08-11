@@ -57,7 +57,7 @@ func (s *Store) UnlockURL(ctx context.Context, url *model.URL) error {
 // AppendLog create log.
 func (s *Store) AppendLog(ctx context.Context, urlID int64, log *model.Log) error {
 	query, args := querybuilder.NewUpdate("urls",
-		map[string]interface{}{"logs": querybuilder.NewCallExpr("array_append", []interface{}{"logs", querybuilder.NewBindValue(log.Log)})}).
+		map[string]interface{}{"logs": querybuilder.NewCallExpr("array_append", "logs", querybuilder.NewBindValue(log.Log))}).
 		Where(querybuilder.NewIdentifier("id").Equal(urlID)).
 		Build()
 	_, err := s.db.ExecContext(ctx, query, args...)
