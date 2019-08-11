@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/yansal/youtube-ar/api/cmd"
 )
-
-func usage() string {
-	// TODO: generate automatically from commands in package cmd
-	return `usage: youtube-ar [create-url|create-urls-from-playlist|download-url|get-oembed|list-logs|list-urls|retry-next-download-url|server|worker]`
-}
 
 func main() {
 	ctx := context.Background()
@@ -34,10 +31,16 @@ func main() {
 		"worker":                    cmd.Worker,
 	}
 
+	var names []string
+	for k := range cmds {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+
 	cmd, ok := cmds[os.Args[1]]
 	if !ok {
-		fmt.Printf("error: unknown cmd %s\n", os.Args[1])
-		fmt.Println(usage())
+		fmt.Printf("unknown cmd %s\n", os.Args[1])
+		fmt.Printf("usage: %s [%s]\n", os.Args[0], strings.Join(names, "|"))
 		os.Exit(2)
 	}
 
