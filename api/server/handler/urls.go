@@ -13,19 +13,25 @@ import (
 	"github.com/yansal/youtube-ar/api/server"
 )
 
+// URLSerializer is the serializer interface required by url handlers.
+type URLSerializer interface {
+	NewURL(url *model.URL) *resource.URL
+	NewURLs(urls []model.URL) *resource.URLs
+}
+
 // ListURLsManager is the manager interface required by ListURLs.
 type ListURLsManager interface {
 	ListURLs(context.Context, *query.URLs) ([]model.URL, error)
 }
 
 // ListURLs is the GET /urls handler.
-func ListURLs(m ListURLsManager) http.HandlerFunc {
+func ListURLs(m ListURLsManager, s URLSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serveHTTP(w, r, listURLs(m))
+		serveHTTP(w, r, listURLs(m, s))
 	}
 }
 
-func listURLs(m ListURLsManager) handlerFunc {
+func listURLs(m ListURLsManager, s URLSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		q, err := query.ParseURLs(r.URL.Query())
 		if err != nil {
@@ -40,7 +46,7 @@ func listURLs(m ListURLsManager) handlerFunc {
 		if err != nil {
 			return nil, err
 		}
-		resource := resource.NewURLs(urls)
+		resource := s.NewURLs(urls)
 		b, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err
@@ -55,13 +61,13 @@ type CreateURLManager interface {
 }
 
 // CreateURL is the POST /urls handler.
-func CreateURL(m CreateURLManager) http.HandlerFunc {
+func CreateURL(m CreateURLManager, s URLSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serveHTTP(w, r, createURL(m))
+		serveHTTP(w, r, createURL(m, s))
 	}
 }
 
-func createURL(m CreateURLManager) handlerFunc {
+func createURL(m CreateURLManager, s URLSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		var payload payload.URL
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -82,7 +88,7 @@ func createURL(m CreateURLManager) handlerFunc {
 		if err != nil {
 			return nil, err
 		}
-		resource := resource.NewURL(url)
+		resource := s.NewURL(url)
 		b, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err
@@ -97,13 +103,13 @@ type DetailURLManager interface {
 }
 
 // DetailURL is the GET /urls handler.
-func DetailURL(m DetailURLManager) http.HandlerFunc {
+func DetailURL(m DetailURLManager, s URLSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serveHTTP(w, r, detailURL(m))
+		serveHTTP(w, r, detailURL(m, s))
 	}
 }
 
-func detailURL(m DetailURLManager) handlerFunc {
+func detailURL(m DetailURLManager, s URLSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		ctx := r.Context()
 		match := server.ContextMatch(ctx)
@@ -116,7 +122,7 @@ func detailURL(m DetailURLManager) handlerFunc {
 		if err != nil {
 			return nil, err
 		}
-		resource := resource.NewURL(url)
+		resource := s.NewURL(url)
 		b, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err
@@ -159,13 +165,13 @@ type Retrier interface {
 }
 
 // RetryURL is the POST /urls/:id/retry handler.
-func RetryURL(retrier Retrier) http.HandlerFunc {
+func RetryURL(retrier Retrier, s URLSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serveHTTP(w, r, retryURL(retrier))
+		serveHTTP(w, r, retryURL(retrier, s))
 	}
 }
 
-func retryURL(retrier Retrier) handlerFunc {
+func retryURL(retrier Retrier, s URLSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		ctx := r.Context()
 		match := server.ContextMatch(ctx)
@@ -179,7 +185,7 @@ func retryURL(retrier Retrier) handlerFunc {
 			return nil, err
 		}
 
-		resource := resource.NewURL(url)
+		resource := s.NewURL(url)
 		b, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err

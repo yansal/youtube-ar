@@ -7,6 +7,16 @@ import (
 	"github.com/yansal/youtube-ar/api/model"
 )
 
+// Serializer is a resource serializer.
+type Serializer struct {
+	mediaURL string
+}
+
+// NewSerializer returns a new serializer.
+func NewSerializer() *Serializer {
+	return &Serializer{mediaURL: "https://" + os.Getenv("S3_BUCKET") + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/"}
+}
+
 // URL is the url resource.
 type URL struct {
 	ID        int64     `json:"id,omitempty"`
@@ -19,7 +29,7 @@ type URL struct {
 }
 
 // NewURL returns a new URL.
-func NewURL(url *model.URL) *URL {
+func (s *Serializer) NewURL(url *model.URL) *URL {
 	resource := URL{
 		ID:        url.ID,
 		URL:       url.URL,
@@ -31,7 +41,7 @@ func NewURL(url *model.URL) *URL {
 		resource.Error = url.Error.String
 	}
 	if url.File.Valid {
-		resource.File = "https://" + os.Getenv("S3_BUCKET") + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + url.File.String
+		resource.File = s.mediaURL + url.File.String
 	}
 	return &resource
 }
@@ -43,10 +53,10 @@ type URLs struct {
 }
 
 // NewURLs returns a new URL list.
-func NewURLs(urls []model.URL) *URLs {
+func (s *Serializer) NewURLs(urls []model.URL) *URLs {
 	var resource URLs
 	for i := range urls {
-		url := NewURL(&urls[i])
+		url := s.NewURL(&urls[i])
 		resource.URLs = append(resource.URLs, *url)
 	}
 	len := len(urls)
@@ -62,7 +72,7 @@ type Log struct {
 }
 
 // NewLog returns a new Log.
-func NewLog(log *model.Log) *Log {
+func (s *Serializer) NewLog(log *model.Log) *Log {
 	resource := Log{Log: log.Log}
 	return &resource
 }
@@ -74,10 +84,10 @@ type Logs struct {
 }
 
 // NewLogs returns a new Log list.
-func NewLogs(logs []model.Log, cursor int64) *Logs {
+func (s *Serializer) NewLogs(logs []model.Log, cursor int64) *Logs {
 	var resource Logs
 	for i := range logs {
-		log := NewLog(&logs[i])
+		log := s.NewLog(&logs[i])
 		resource.Logs = append(resource.Logs, *log)
 	}
 	resource.NextCursor = cursor + int64(len(logs))

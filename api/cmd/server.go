@@ -10,6 +10,7 @@ import (
 	"github.com/yansal/youtube-ar/api/broker/redis"
 	"github.com/yansal/youtube-ar/api/log"
 	"github.com/yansal/youtube-ar/api/manager"
+	"github.com/yansal/youtube-ar/api/resource"
 	"github.com/yansal/youtube-ar/api/server"
 	"github.com/yansal/youtube-ar/api/server/handler"
 	"github.com/yansal/youtube-ar/api/server/middleware"
@@ -32,16 +33,17 @@ func Server(ctx context.Context, args []string) error {
 	}
 	store := store.New(db)
 	manager := manager.NewServer(broker, store)
+	serializer := resource.NewSerializer()
 
 	mux := server.NewMux()
-	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls$`), handler.ListURLs(manager))
-	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls$`), handler.CreateURL(manager))
-	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)$`), handler.DetailURL(manager))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls$`), handler.ListURLs(manager, serializer))
+	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls$`), handler.CreateURL(manager, serializer))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)$`), handler.DetailURL(manager, serializer))
 	mux.HandleFunc(http.MethodDelete, regexp.MustCompile(`^/urls/(\d+)$`), handler.DeleteURL(manager))
-	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)/logs$`), handler.ListLogs(manager))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)/logs$`), handler.ListLogs(manager, serializer))
 
 	retrier := service.NewRetrier(broker, manager, store)
-	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls/(\d+)/retry$`), handler.RetryURL(retrier))
+	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls/(\d+)/retry$`), handler.RetryURL(retrier, serializer))
 
 	handler := middleware.Log(mux, log)
 	handler = middleware.CORS(handler)

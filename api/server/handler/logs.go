@@ -12,19 +12,24 @@ import (
 	"github.com/yansal/youtube-ar/api/server"
 )
 
+// LogSerializer is the serializer interface required by log handlers.
+type LogSerializer interface {
+	NewLogs(logs []model.Log, cursor int64) *resource.Logs
+}
+
 // ListLogsManager is the manager interface required by ListLogs.
 type ListLogsManager interface {
 	ListLogs(context.Context, int64, *query.Logs) ([]model.Log, error)
 }
 
 // ListLogs is the GET /urls/:id/logs handler.
-func ListLogs(m ListLogsManager) http.HandlerFunc {
+func ListLogs(m ListLogsManager, s LogSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serveHTTP(w, r, listLogs(m))
+		serveHTTP(w, r, listLogs(m, s))
 	}
 }
 
-func listLogs(m ListLogsManager) handlerFunc {
+func listLogs(m ListLogsManager, s LogSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		ctx := r.Context()
 		match := server.ContextMatch(ctx)
@@ -45,7 +50,7 @@ func listLogs(m ListLogsManager) handlerFunc {
 		if err != nil {
 			return nil, err
 		}
-		resource := resource.NewLogs(logs, q.Cursor)
+		resource := s.NewLogs(logs, q.Cursor)
 		b, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err
