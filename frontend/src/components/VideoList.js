@@ -17,7 +17,7 @@ class VideoList extends React.Component {
   componentDidMount() {
     fetch(`${API_URL}/urls`).then(response => {
       response.json().then(resource => {
-        this.setState({ list: resource.urls })
+        this.setState({ list: resource.urls, nextCursor: resource.next_cursor })
       })
     })
   }
@@ -44,6 +44,22 @@ class VideoList extends React.Component {
     })
   }
 
+  handleNext = event => {
+    const { nextCursor } = this.state
+    fetch(`${API_URL}/urls?cursor=${nextCursor}`).then(response => {
+      response.json().then(resource => {
+        if (resource.urls === null) {
+          // TODO: remove next button?
+          return
+        }
+
+        const { list } = this.state
+        const updatedList = list.concat(resource.urls)
+        this.setState({ list: updatedList, nextCursor: resource.next_cursor})
+      })
+    })
+  }
+
   render() {
     const { list } = this.state
     const listNodes = list.map(video => (
@@ -56,6 +72,7 @@ class VideoList extends React.Component {
           <input type="text" ref={this.videoInput} />
         </form>
         <ul>{listNodes}</ul>
+        <button onClick={this.handleNext}>Next</button>
       </div>
     )
   }
