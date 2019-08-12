@@ -31,8 +31,8 @@ func (s *Store) CreateURL(ctx context.Context, url *model.URL) error {
 
 // LockURL locks url.
 func (s *Store) LockURL(ctx context.Context, url *model.URL) error {
-	query, args := querybuilder.NewUpdate("urls",
-		map[string]interface{}{"status": url.Status}).
+	query, args := querybuilder.NewUpdate("urls").
+		Set(map[string]interface{}{"status": url.Status}).
 		Where(querybuilder.NewBoolExpr(
 			querybuilder.NewIdentifier("id").Equal(url.ID)).
 			And(querybuilder.NewIdentifier("status").Equal("pending")),
@@ -44,8 +44,8 @@ func (s *Store) LockURL(ctx context.Context, url *model.URL) error {
 
 // UnlockURL unlocks url.
 func (s *Store) UnlockURL(ctx context.Context, url *model.URL) error {
-	query, args := querybuilder.NewUpdate("urls",
-		map[string]interface{}{"status": url.Status, "file": url.File, "error": url.Error}).
+	query, args := querybuilder.NewUpdate("urls").
+		Set(map[string]interface{}{"status": url.Status, "file": url.File, "error": url.Error}).
 		Where(querybuilder.NewBoolExpr(
 			querybuilder.NewIdentifier("id").Equal(url.ID)).
 			And(querybuilder.NewIdentifier("status").Equal("processing")),
@@ -57,8 +57,8 @@ func (s *Store) UnlockURL(ctx context.Context, url *model.URL) error {
 
 // SetOEmbed sets oembed.
 func (s *Store) SetOEmbed(ctx context.Context, url *model.URL) error {
-	query, args := querybuilder.NewUpdate("urls",
-		map[string]interface{}{"oembed": url.OEmbed}).
+	query, args := querybuilder.NewUpdate("urls").
+		Set(map[string]interface{}{"oembed": url.OEmbed}).
 		Where(querybuilder.NewIdentifier("id").Equal(url.ID)).
 		Build()
 	_, err := s.db.ExecContext(ctx, query, args...)
@@ -67,8 +67,8 @@ func (s *Store) SetOEmbed(ctx context.Context, url *model.URL) error {
 
 // AppendLog create log.
 func (s *Store) AppendLog(ctx context.Context, urlID int64, log *model.Log) error {
-	query, args := querybuilder.NewUpdate("urls",
-		map[string]interface{}{"logs": querybuilder.NewCallExpr("array_append", "logs", querybuilder.NewBindValue(log.Log))}).
+	query, args := querybuilder.NewUpdate("urls").
+		Set(map[string]interface{}{"logs": querybuilder.NewCallExpr("array_append", "logs", querybuilder.NewBindValue(log.Log))}).
 		Where(querybuilder.NewIdentifier("id").Equal(urlID)).
 		Build()
 	_, err := s.db.ExecContext(ctx, query, args...)
@@ -95,8 +95,8 @@ func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 
 // DeleteURL deletes the url with id.
 func (s *Store) DeleteURL(ctx context.Context, id int64) error {
-	query, args := querybuilder.NewUpdate("urls",
-		map[string]interface{}{"deleted_at": time.Now()}).
+	query, args := querybuilder.NewUpdate("urls").
+		Set(map[string]interface{}{"deleted_at": time.Now()}).
 		Where(querybuilder.NewIdentifier("id").Equal(id)).
 		Build()
 

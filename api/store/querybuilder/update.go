@@ -1,8 +1,8 @@
 package querybuilder
 
 // NewUpdate returns a new update statement.
-func NewUpdate(table string, set map[string]interface{}) *Update {
-	return &Update{table: table, set: newSet(set)}
+func NewUpdate(table string) *Update {
+	return &Update{table: table}
 }
 
 // A Update is a update statement.
@@ -33,6 +33,12 @@ func (stmt *Update) Build() (string, []interface{}) {
 	}
 
 	return b.buf.String(), b.params
+}
+
+// Set adds a set clause.
+func (stmt *Update) Set(set map[string]interface{}) *Update {
+	stmt.set = newSet(set)
+	return stmt
 }
 
 // Where adds a where clause.
