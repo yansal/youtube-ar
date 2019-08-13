@@ -16,7 +16,7 @@ import (
 	"github.com/yansal/youtube-ar/api/server/middleware"
 	"github.com/yansal/youtube-ar/api/service"
 	"github.com/yansal/youtube-ar/api/store"
-	"github.com/yansal/youtube-ar/api/store/db"
+	"github.com/yansal/youtube-ar/api/store/sql"
 )
 
 // Server is the server cmd.
@@ -27,7 +27,7 @@ func Server(ctx context.Context, args []string) error {
 		return err
 	}
 	broker := broker.New(redis, log)
-	db, err := db.New(log)
+	db, err := sql.New(log)
 	if err != nil {
 		return err
 	}

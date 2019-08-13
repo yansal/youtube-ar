@@ -11,16 +11,16 @@ import (
 
 // URL is the url model.
 type URL struct {
-	ID        int64
-	URL       string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Status    string
-	Error     sql.NullString
-	File      sql.NullString
-	Retries   sql.NullInt64
-	Logs      pq.StringArray
-	OEmbed    []byte // json-encoded
+	ID        int64          `sql:"id"`
+	URL       string         `sql:"url"`
+	CreatedAt time.Time      `sql:"created_at"`
+	UpdatedAt time.Time      `sql:"updated_at"`
+	Status    string         `sql:"status"`
+	Error     sql.NullString `sql:"error"`
+	File      sql.NullString `sql:"file"`
+	Retries   sql.NullInt64  `sql:"retries"`
+	Logs      pq.StringArray `sql:"logs"`
+	OEmbed    []byte         `sql:"oembed"` // json-encoded
 }
 
 // ShouldRetry reports whether failed because of a rate limiter or a geo limitation.
@@ -45,14 +45,14 @@ var shouldRetryRegexps = []*regexp.Regexp{
 
 // Log is the log model.
 type Log struct {
-	Log string
+	Log string `sql:"log"`
 }
 
 // YoutubeVideo is the youtube video model.
 type YoutubeVideo struct {
-	ID        int64
-	YoutubeID string
-	CreatedAt time.Time
+	ID        int64     `sql:"id"`
+	YoutubeID string    `sql:"youtube_id"`
+	CreatedAt time.Time `sql:"created_at"`
 }
 
 // Page is the page model.

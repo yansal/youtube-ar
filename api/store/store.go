@@ -2,12 +2,12 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/query"
 	"github.com/yansal/youtube-ar/api/store/querybuilder"
+	"github.com/yansal/youtube-ar/api/store/sql"
 )
 
 // New returns a new store.
@@ -26,7 +26,7 @@ func (s *Store) CreateURL(ctx context.Context, url *model.URL) error {
 		Values(url.URL, url.Retries).
 		Returning("id", "created_at", "updated_at", "status").
 		Build()
-	return s.db.QueryRowContext(ctx, query, args...).Scan(&url.ID, &url.CreatedAt, &url.UpdatedAt, &url.Status)
+	return s.db.QueryStruct(ctx, url, query, args...)
 }
 
 // LockURL locks url.
@@ -85,9 +85,7 @@ func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 		Build()
 
 	var url model.URL
-	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
-		&url.ID, &url.URL, &url.CreatedAt, &url.UpdatedAt, &url.Status, &url.Error, &url.File, &url.Retries, &url.Logs, &url.OEmbed,
-	); err != nil {
+	if err := s.db.QueryStruct(ctx, &url, query, args...); err != nil {
 		return nil, err
 	}
 	return &url, nil
@@ -107,22 +105,10 @@ func (s *Store) DeleteURL(ctx context.Context, id int64) error {
 // ListURLs lists urls.
 func (s *Store) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error) {
 	query, args := buildListURLs(q)
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
 	var urls []model.URL
-	for rows.Next() {
-		var url model.URL
-		if err := rows.Scan(&url.ID, &url.URL, &url.CreatedAt, &url.UpdatedAt, &url.Status, &url.Error, &url.File, &url.Retries, &url.OEmbed); err != nil {
-			return nil, err
-		}
-		urls = append(urls, url)
-	}
-	if err := rows.Err(); err != nil {
+	if err := s.db.QueryStructSlice(ctx, &urls, query, args...); err != nil {
 		return nil, err
 	}
-
 	return urls, nil
 }
 
@@ -148,28 +134,16 @@ func buildListURLs(q *query.URLs) (string, []interface{}) {
 
 // ListLogs list logs.
 func (s *Store) ListLogs(ctx context.Context, urlID int64, q *query.Logs) ([]model.Log, error) {
-	query, args := querybuilder.NewSelect(querybuilder.NewCallExpr("unnest", "logs")).
+	query, args := querybuilder.NewSelect("unnest(logs) as log").
 		From("urls").
 		Where(querybuilder.NewIdentifier("id").Equal(urlID)).
 		Offset(q.Cursor).
 		Build()
 
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
 	var logs []model.Log
-	for rows.Next() {
-		var log model.Log
-		if err := rows.Scan(&log.Log); err != nil {
-			return nil, err
-		}
-		logs = append(logs, log)
-	}
-	if err := rows.Err(); err != nil {
+	if err := s.db.QueryStructSlice(ctx, &logs, query, args...); err != nil {
 		return nil, err
 	}
-
 	return logs, nil
 }
 
@@ -180,7 +154,7 @@ func (s *Store) CreateYoutubeVideo(ctx context.Context, v *model.YoutubeVideo) e
 		Returning("id", "created_at").
 		Build()
 
-	return s.db.QueryRowContext(ctx, query, args...).Scan(&v.ID, &v.CreatedAt)
+	return s.db.QueryStruct(ctx, v, query, args...)
 }
 
 // GetYoutubeVideoByYoutubeID gets a youtube video from a youtube id.
@@ -191,9 +165,7 @@ func (s *Store) GetYoutubeVideoByYoutubeID(ctx context.Context, youtubeID string
 		Build()
 
 	var v model.YoutubeVideo
-	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
-		&v.ID, &v.YoutubeID, &v.CreatedAt,
-	); err != nil {
+	if err := s.db.QueryStruct(ctx, &v, query, args...); err != nil {
 		return nil, err
 	}
 	return &v, nil

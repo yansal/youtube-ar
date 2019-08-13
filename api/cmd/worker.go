@@ -11,7 +11,7 @@ import (
 	"github.com/yansal/youtube-ar/api/oembed"
 	"github.com/yansal/youtube-ar/api/storage"
 	"github.com/yansal/youtube-ar/api/store"
-	"github.com/yansal/youtube-ar/api/store/db"
+	"github.com/yansal/youtube-ar/api/store/sql"
 	"github.com/yansal/youtube-ar/api/worker"
 	"github.com/yansal/youtube-ar/api/worker/handler"
 	"github.com/yansal/youtube-ar/api/youtubedl"
@@ -30,7 +30,7 @@ func Worker(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	db, err := db.New(log)
+	db, err := sql.New(log)
 	if err != nil {
 		return err
 	}
