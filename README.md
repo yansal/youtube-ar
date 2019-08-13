@@ -14,5 +14,5 @@ An API instance is deployed at https://youtube-ar-2.herokuapp.com/.
 
 ## TODO
 
-* frontend: show oembed, filter urls by status, delete url, retry url
+* frontend: show oembed, filter urls by status, delete url, retry url, download file
 * api: retry with tor
