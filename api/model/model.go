@@ -23,7 +23,7 @@ type URL struct {
 	OEmbed    []byte         `sql:"oembed"` // json-encoded
 }
 
-// ShouldRetry reports whether failed because of a rate limiter or a geo limitation.
+// ShouldRetry reports whether u failed because of a rate limiter or a geo limitation.
 func (u URL) ShouldRetry() bool {
 	if u.Error.String != "exit status 1" {
 		return false
