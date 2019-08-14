@@ -10,23 +10,19 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/yansal/youtube-ar/api/log"
-	loghttp "github.com/yansal/youtube-ar/api/log/http"
 	"golang.org/x/net/html"
 )
 
 // NewClient returns a new client.
-func NewClient(log log.Logger) *Client {
+func NewClient(httpclient *http.Client) *Client {
 	return &Client{
-		client: loghttp.Wrap(new(http.Client), log),
-		log:    log,
+		client: httpclient,
 	}
 }
 
 // Client is an oembed client.
 type Client struct {
 	client *http.Client
-	log    log.Logger
 
 	loadProvidersOnce sync.Once
 	providers         []provider

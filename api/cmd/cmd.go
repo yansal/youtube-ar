@@ -5,10 +5,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 
 	"github.com/yansal/youtube-ar/api/broker"
 	"github.com/yansal/youtube-ar/api/broker/redis"
 	"github.com/yansal/youtube-ar/api/log"
+	loghttp "github.com/yansal/youtube-ar/api/log/http"
 	"github.com/yansal/youtube-ar/api/manager"
 	"github.com/yansal/youtube-ar/api/oembed"
 	"github.com/yansal/youtube-ar/api/payload"
@@ -82,7 +84,8 @@ func CreateURLsFromPlaylist(ctx context.Context, args []string) error {
 	}
 	store := store.New(db)
 	manager := manager.NewServer(broker, store)
-	playlistLoader := service.NewPlaylistLoader(manager, store, youtube.New(log))
+	httpclient := loghttp.Wrap(new(http.Client), log)
+	playlistLoader := service.NewPlaylistLoader(manager, store, youtube.New(httpclient))
 
 	return playlistLoader.CreateURLsFromYoutube(ctx, playlist)
 }
@@ -100,7 +103,8 @@ func GetOembed(ctx context.Context, args []string) error {
 	}
 
 	log := log.New()
-	oe := oembed.NewClient(log)
+	httpclient := loghttp.Wrap(new(http.Client), log)
+	oe := oembed.NewClient(httpclient)
 
 	data, err := oe.Get(ctx, url)
 	if err != nil {

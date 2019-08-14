@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/yansal/youtube-ar/api/broker"
 	"github.com/yansal/youtube-ar/api/broker/redis"
 	"github.com/yansal/youtube-ar/api/downloader"
 	"github.com/yansal/youtube-ar/api/log"
+	loghttp "github.com/yansal/youtube-ar/api/log/http"
 	"github.com/yansal/youtube-ar/api/manager"
 	"github.com/yansal/youtube-ar/api/oembed"
 	"github.com/yansal/youtube-ar/api/storage"
@@ -35,7 +37,8 @@ func Worker(ctx context.Context, args []string) error {
 	}
 	store := store.New(db)
 	downloader := downloader.New(youtubedl.New(), storage, store, log)
-	m := manager.NewWorker(downloader, oembed.NewClient(log), store)
+	httpclient := loghttp.Wrap(new(http.Client), log)
+	m := manager.NewWorker(downloader, oembed.NewClient(httpclient), store)
 
 	w := worker.New(b, map[string]broker.Handler{
 		"download-url": handler.DownloadURL(m),

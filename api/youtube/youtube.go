@@ -6,9 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-
-	"github.com/yansal/youtube-ar/api/log"
-	loghttp "github.com/yansal/youtube-ar/api/log/http"
 )
 
 // Video is the video resource.
@@ -17,10 +14,10 @@ type Video struct {
 }
 
 // New returns a new Client.
-func New(log log.Logger) *Client {
+func New(httpclient *http.Client) *Client {
 	return &Client{
 		apiKey: os.Getenv("YOUTUBE_API_KEY"),
-		client: loghttp.Wrap(new(http.Client), log),
+		client: httpclient,
 	}
 }
 

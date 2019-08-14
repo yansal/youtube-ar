@@ -1,7 +1,6 @@
 package oembed
 
 import (
-	"context"
 	"encoding/json"
 	"net/url"
 )
@@ -23,11 +22,9 @@ type endpoint struct {
 }
 
 func (c *Client) loadProviders() {
-	ctx := context.Background()
 	var providers []providerResource
 	if err := json.Unmarshal([]byte(providersJSON), &providers); err != nil {
-		c.log.Log(ctx, err.Error())
-		return
+		panic(err)
 	}
 
 	for _, p := range providers {
@@ -35,8 +32,7 @@ func (c *Client) loadProviders() {
 			// TODO: substitute {format} in e.URL?
 			url, err := url.Parse(e.URL)
 			if err != nil {
-				c.log.Log(ctx, err.Error())
-				return
+				panic(err)
 			}
 			for _, s := range e.Schemes {
 				c.providers = append(c.providers, provider{
