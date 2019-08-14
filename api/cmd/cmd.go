@@ -15,7 +15,6 @@ import (
 	"github.com/yansal/youtube-ar/api/query"
 	"github.com/yansal/youtube-ar/api/service"
 	"github.com/yansal/youtube-ar/api/store"
-	"github.com/yansal/youtube-ar/api/store/sql"
 	"github.com/yansal/youtube-ar/api/youtube"
 	"github.com/yansal/youtube-ar/api/youtubedl"
 )
@@ -41,7 +40,7 @@ func CreateURL(ctx context.Context, args []string) error {
 		return err
 	}
 	broker := broker.New(redis, log)
-	db, err := sql.New(log)
+	db, err := newSQLDB(log)
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,7 @@ func CreateURLsFromPlaylist(ctx context.Context, args []string) error {
 		return err
 	}
 	broker := broker.New(redis, log)
-	db, err := sql.New(log)
+	db, err := newSQLDB(log)
 	if err != nil {
 		return err
 	}
@@ -153,7 +152,7 @@ func ListLogs(ctx context.Context, args []string) error {
 	}
 
 	log := log.New()
-	db, err := sql.New(log)
+	db, err := newSQLDB(log)
 	if err != nil {
 		return err
 	}
@@ -182,7 +181,7 @@ func ListURLs(ctx context.Context, args []string) error {
 	}
 
 	log := log.New()
-	db, err := sql.New(log)
+	db, err := newSQLDB(log)
 	if err != nil {
 		return err
 	}
@@ -207,7 +206,7 @@ func RetryNextDownloadURL(ctx context.Context, args []string) error {
 		return err
 	}
 	broker := broker.New(redis, log)
-	db, err := sql.New(log)
+	db, err := newSQLDB(log)
 	if err != nil {
 		return err
 	}

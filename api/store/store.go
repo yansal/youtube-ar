@@ -2,22 +2,29 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/query"
 	"github.com/yansal/youtube-ar/api/store/querybuilder"
-	"github.com/yansal/youtube-ar/api/store/sql"
 )
 
 // New returns a new store.
-func New(db *sql.DB) *Store {
+func New(db DB) *Store {
 	return &Store{db: db}
 }
 
 // Store is a store.
 type Store struct {
-	db *sql.DB
+	db DB
+}
+
+// DB is the db interface required by store.
+type DB interface {
+	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+	QueryStruct(context.Context, interface{}, string, ...interface{}) error
+	QueryStructSlice(context.Context, interface{}, string, ...interface{}) error
 }
 
 // CreateURL creates url.
