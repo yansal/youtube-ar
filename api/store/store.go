@@ -41,10 +41,10 @@ func (s *Store) LockURL(ctx context.Context, url *model.URL) error {
 	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"status": url.Status}).
 		Where(querybuilder.Expr(
-			querybuilder.Expr("id").Equal(url.ID)).
-			And(querybuilder.Expr("status").Equal("pending")),
-		).
-		Build()
+			querybuilder.Expr("id").Equal(url.ID),
+		).And(
+			querybuilder.Expr("status").Equal("pending"),
+		)).Build()
 	_, err := s.db.ExecContext(ctx, query, args...)
 	return err
 }
@@ -54,10 +54,10 @@ func (s *Store) UnlockURL(ctx context.Context, url *model.URL) error {
 	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"status": url.Status, "file": url.File, "error": url.Error}).
 		Where(querybuilder.Expr(
-			querybuilder.Expr("id").Equal(url.ID)).
-			And(querybuilder.Expr("status").Equal("processing")),
-		).
-		Build()
+			querybuilder.Expr("id").Equal(url.ID),
+		).And(
+			querybuilder.Expr("status").Equal("processing"),
+		)).Build()
 	_, err := s.db.ExecContext(ctx, query, args...)
 	return err
 }
@@ -87,9 +87,10 @@ func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 	query, args := querybuilder.Select("id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "logs", "oembed").
 		From("urls").
 		Where(querybuilder.Expr(
-			querybuilder.Expr("id").Equal(id)).And(
-			querybuilder.Expr("deleted_at").IsNull())).
-		Build()
+			querybuilder.Expr("id").Equal(id),
+		).And(
+			querybuilder.Expr("deleted_at").IsNull()),
+		).Build()
 
 	var url model.URL
 	if err := s.db.QueryStruct(ctx, &url, query, args...); err != nil {

@@ -28,11 +28,15 @@ func TestSelect(t *testing.T) {
 		stmt:  Select("foo").Where("bar"),
 		query: "SELECT foo WHERE bar",
 	}, {
-		stmt: Select("col").From("table").Where(
-			Expr(Expr(Expr("deleted_at").IsNull()).
-				And(Expr("id").LessThan(1))).
-				And(Expr("status").In([]string{"success", "failed"})),
-		),
+		stmt: Select("col").
+			From("table").
+			Where(Expr(Expr(
+				Expr("deleted_at").IsNull(),
+			).And(
+				Expr("id").LessThan(1),
+			)).And(
+				Expr("status").In([]string{"success", "failed"}),
+			)),
 		query: "SELECT col FROM table WHERE deleted_at IS NULL AND id < $1 AND status IN ($2, $3)",
 		args:  []interface{}{1, "success", "failed"},
 	}} {
