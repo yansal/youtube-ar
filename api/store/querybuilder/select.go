@@ -1,12 +1,12 @@
 package querybuilder
 
-// NewSelect returns a new select statement.
-func NewSelect(columns ...interface{}) *Select {
-	return &Select{columns: newColumns(columns...)}
+// Select returns a new select statement.
+func Select(columns ...interface{}) *SelectStmt {
+	return &SelectStmt{columns: newColumns(columns...)}
 }
 
-// A Select is a select statement.
-type Select struct {
+// A SelectStmt is a select statement.
+type SelectStmt struct {
 	columns *columns
 	from    *from
 	where   *where
@@ -16,37 +16,37 @@ type Select struct {
 }
 
 // From adds a from clause.
-func (stmt *Select) From(table string) *Select {
+func (stmt *SelectStmt) From(table string) *SelectStmt {
 	stmt.from = newFrom(table)
 	return stmt
 }
 
 // Where adds a where clause.
-func (stmt *Select) Where(e Expr) *Select {
+func (stmt *SelectStmt) Where(e Expr) *SelectStmt {
 	stmt.where = newWhere(e)
 	return stmt
 }
 
 // OrderBy adds an order by.
-func (stmt *Select) OrderBy(s string) *Select {
+func (stmt *SelectStmt) OrderBy(s string) *SelectStmt {
 	stmt.orderby = newOrderBy(s)
 	return stmt
 }
 
 // Limit adds a limit.
-func (stmt *Select) Limit(i int64) *Select {
+func (stmt *SelectStmt) Limit(i int64) *SelectStmt {
 	stmt.limit = newLimit(i)
 	return stmt
 }
 
 // Offset adds an offset.
-func (stmt *Select) Offset(i int64) *Select {
+func (stmt *SelectStmt) Offset(i int64) *SelectStmt {
 	stmt.offset = newOffset(i)
 	return stmt
 }
 
 // Build returns the built statement and its parameters.
-func (stmt *Select) Build() (string, []interface{}) {
+func (stmt *SelectStmt) Build() (string, []interface{}) {
 	b := new(builder)
 	b.write("SELECT ")
 	stmt.columns.build(b)

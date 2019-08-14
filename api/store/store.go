@@ -22,7 +22,7 @@ type Store struct {
 
 // CreateURL creates url.
 func (s *Store) CreateURL(ctx context.Context, url *model.URL) error {
-	query, args := querybuilder.NewInsert("urls", []string{"url", "retries"}).
+	query, args := querybuilder.Insert("urls", []string{"url", "retries"}).
 		Values(url.URL, url.Retries).
 		Returning("id", "created_at", "updated_at", "status").
 		Build()
@@ -31,7 +31,7 @@ func (s *Store) CreateURL(ctx context.Context, url *model.URL) error {
 
 // LockURL locks url.
 func (s *Store) LockURL(ctx context.Context, url *model.URL) error {
-	query, args := querybuilder.NewUpdate("urls").
+	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"status": url.Status}).
 		Where(querybuilder.NewBoolExpr(
 			querybuilder.NewIdentifier("id").Equal(url.ID)).
@@ -44,7 +44,7 @@ func (s *Store) LockURL(ctx context.Context, url *model.URL) error {
 
 // UnlockURL unlocks url.
 func (s *Store) UnlockURL(ctx context.Context, url *model.URL) error {
-	query, args := querybuilder.NewUpdate("urls").
+	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"status": url.Status, "file": url.File, "error": url.Error}).
 		Where(querybuilder.NewBoolExpr(
 			querybuilder.NewIdentifier("id").Equal(url.ID)).
@@ -57,7 +57,7 @@ func (s *Store) UnlockURL(ctx context.Context, url *model.URL) error {
 
 // SetOEmbed sets oembed.
 func (s *Store) SetOEmbed(ctx context.Context, url *model.URL) error {
-	query, args := querybuilder.NewUpdate("urls").
+	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"oembed": url.OEmbed}).
 		Where(querybuilder.NewIdentifier("id").Equal(url.ID)).
 		Build()
@@ -67,7 +67,7 @@ func (s *Store) SetOEmbed(ctx context.Context, url *model.URL) error {
 
 // AppendLog create log.
 func (s *Store) AppendLog(ctx context.Context, urlID int64, log *model.Log) error {
-	query, args := querybuilder.NewUpdate("urls").
+	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"logs": querybuilder.NewCallExpr("array_append", "logs", querybuilder.NewBindValue(log.Log))}).
 		Where(querybuilder.NewIdentifier("id").Equal(urlID)).
 		Build()
@@ -77,7 +77,7 @@ func (s *Store) AppendLog(ctx context.Context, urlID int64, log *model.Log) erro
 
 // GetURL gets the url with id.
 func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
-	query, args := querybuilder.NewSelect("id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "logs", "oembed").
+	query, args := querybuilder.Select("id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "logs", "oembed").
 		From("urls").
 		Where(querybuilder.NewBoolExpr(
 			querybuilder.NewIdentifier("id").Equal(id)).And(
@@ -93,7 +93,7 @@ func (s *Store) GetURL(ctx context.Context, id int64) (*model.URL, error) {
 
 // DeleteURL deletes the url with id.
 func (s *Store) DeleteURL(ctx context.Context, id int64) error {
-	query, args := querybuilder.NewUpdate("urls").
+	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"deleted_at": time.Now()}).
 		Where(querybuilder.NewIdentifier("id").Equal(id)).
 		Build()
@@ -113,7 +113,7 @@ func (s *Store) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error
 }
 
 func buildListURLs(q *query.URLs) (string, []interface{}) {
-	stmt := querybuilder.NewSelect(
+	stmt := querybuilder.Select(
 		"id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "oembed",
 	).From("urls")
 
@@ -134,7 +134,7 @@ func buildListURLs(q *query.URLs) (string, []interface{}) {
 
 // ListLogs list logs.
 func (s *Store) ListLogs(ctx context.Context, urlID int64, q *query.Logs) ([]model.Log, error) {
-	query, args := querybuilder.NewSelect("unnest(logs) as log").
+	query, args := querybuilder.Select("unnest(logs) as log").
 		From("urls").
 		Where(querybuilder.NewIdentifier("id").Equal(urlID)).
 		Offset(q.Cursor).
@@ -149,7 +149,7 @@ func (s *Store) ListLogs(ctx context.Context, urlID int64, q *query.Logs) ([]mod
 
 // CreateYoutubeVideo creates v.
 func (s *Store) CreateYoutubeVideo(ctx context.Context, v *model.YoutubeVideo) error {
-	query, args := querybuilder.NewInsert("youtube_videos", []string{"youtube_id"}).
+	query, args := querybuilder.Insert("youtube_videos", []string{"youtube_id"}).
 		Values(v.YoutubeID).
 		Returning("id", "created_at").
 		Build()
@@ -159,7 +159,7 @@ func (s *Store) CreateYoutubeVideo(ctx context.Context, v *model.YoutubeVideo) e
 
 // GetYoutubeVideoByYoutubeID gets a youtube video from a youtube id.
 func (s *Store) GetYoutubeVideoByYoutubeID(ctx context.Context, youtubeID string) (*model.YoutubeVideo, error) {
-	query, args := querybuilder.NewSelect("id", "youtube_id", "created_at").
+	query, args := querybuilder.Select("id", "youtube_id", "created_at").
 		From("youtube_videos").
 		Where(querybuilder.NewIdentifier("youtube_id").Equal(youtubeID)).
 		Build()

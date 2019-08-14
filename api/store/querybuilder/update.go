@@ -1,12 +1,12 @@
 package querybuilder
 
-// NewUpdate returns a new update statement.
-func NewUpdate(table string) *Update {
-	return &Update{table: table}
+// Update returns a new update statement.
+func Update(table string) *UpdateStmt {
+	return &UpdateStmt{table: table}
 }
 
-// A Update is a update statement.
-type Update struct {
+// A UpdateStmt is a update statement.
+type UpdateStmt struct {
 	table     string
 	set       *set
 	where     *where
@@ -14,7 +14,7 @@ type Update struct {
 }
 
 // Build returns the built statement and its parameters.
-func (stmt *Update) Build() (string, []interface{}) {
+func (stmt *UpdateStmt) Build() (string, []interface{}) {
 	b := new(builder)
 
 	b.write("UPDATE ")
@@ -36,19 +36,19 @@ func (stmt *Update) Build() (string, []interface{}) {
 }
 
 // Set adds a set clause.
-func (stmt *Update) Set(set map[string]interface{}) *Update {
+func (stmt *UpdateStmt) Set(set map[string]interface{}) *UpdateStmt {
 	stmt.set = newSet(set)
 	return stmt
 }
 
 // Where adds a where clause.
-func (stmt *Update) Where(e Expr) *Update {
+func (stmt *UpdateStmt) Where(e Expr) *UpdateStmt {
 	stmt.where = newWhere(e)
 	return stmt
 }
 
 // Returning adds a returning clause.
-func (stmt *Update) Returning(values ...string) *Update {
+func (stmt *UpdateStmt) Returning(values ...string) *UpdateStmt {
 	stmt.returning = newReturning(values...)
 	return stmt
 }

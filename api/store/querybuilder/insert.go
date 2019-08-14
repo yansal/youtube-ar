@@ -1,12 +1,12 @@
 package querybuilder
 
-// NewInsert returns a new insert statement.
-func NewInsert(table string, columns []string) *Insert {
-	return &Insert{table: table, columns: columns}
+// Insert returns a new insert statement.
+func Insert(table string, columns []string) *InsertStmt {
+	return &InsertStmt{table: table, columns: columns}
 }
 
-// A Insert is a insert statement.
-type Insert struct {
+// A InsertStmt is a insert statement.
+type InsertStmt struct {
 	table     string
 	columns   []string
 	values    *values
@@ -14,19 +14,19 @@ type Insert struct {
 }
 
 // Values adds a values clause.
-func (stmt *Insert) Values(values ...interface{}) *Insert {
+func (stmt *InsertStmt) Values(values ...interface{}) *InsertStmt {
 	stmt.values = newValues(values...)
 	return stmt
 }
 
 // Returning adds a returning clause.
-func (stmt *Insert) Returning(values ...string) *Insert {
+func (stmt *InsertStmt) Returning(values ...string) *InsertStmt {
 	stmt.returning = newReturning(values...)
 	return stmt
 }
 
 // Build returns the built statement and its parameters.
-func (stmt *Insert) Build() (string, []interface{}) {
+func (stmt *InsertStmt) Build() (string, []interface{}) {
 	b := new(builder)
 	b.write("INSERT INTO ")
 	b.write(stmt.table)
