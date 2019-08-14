@@ -141,14 +141,17 @@ func (offset offset) build(b *builder) {
 	b.bind(offset.i)
 }
 
+// Column returns a new SelectColumn.
 func Column(i interface{}) *SelectColumn {
 	return &SelectColumn{expr: newExpression(i)}
 }
 
+// SelectColumn is a select column.
 type SelectColumn struct {
 	expr Expression
 }
 
+// As adds a column alias.
 func (s *SelectColumn) As(as string) Expression {
 	return &column{expr: s.expr, as: as}
 }
