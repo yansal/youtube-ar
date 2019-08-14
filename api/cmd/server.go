@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/yansal/youtube-ar/api/broker"
 	"github.com/yansal/youtube-ar/api/log"
@@ -48,10 +50,31 @@ func Server(ctx context.Context, args []string) error {
 
 	handler := middleware.Log(mux, log)
 	handler = middleware.CORS(handler)
+	server := http.Server{Handler: handler}
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	return http.ListenAndServe(":"+port, handler)
+	l, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		return err
+	}
+
+	cerr := make(chan error)
+	go func() {
+		cerr <- server.Serve(l)
+	}()
+
+	select {
+	case <-ctx.Done():
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			log.Log(ctx, err.Error())
+		}
+		return nil
+	case err := <-cerr:
+		return err
+	}
 }
