@@ -3,9 +3,9 @@ package cmd
 import (
 	"context"
 	"net/http"
+	"os"
 
 	"github.com/yansal/youtube-ar/api/broker"
-	"github.com/yansal/youtube-ar/api/broker/redis"
 	"github.com/yansal/youtube-ar/api/downloader"
 	"github.com/yansal/youtube-ar/api/log"
 	loghttp "github.com/yansal/youtube-ar/api/log/http"
@@ -21,13 +21,13 @@ import (
 // Worker is the worker cmd.
 func Worker(ctx context.Context, args []string) error {
 	log := log.New()
-	redis, err := redis.New(log)
+	redis, err := newRedis(log)
 	if err != nil {
 		return err
 	}
 	b := broker.New(redis, log)
 
-	storage, err := storage.New()
+	storage, err := storage.New(os.Getenv("S3_BUCKET"))
 	if err != nil {
 		return err
 	}

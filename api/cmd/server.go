@@ -7,7 +7,6 @@ import (
 	"regexp"
 
 	"github.com/yansal/youtube-ar/api/broker"
-	"github.com/yansal/youtube-ar/api/broker/redis"
 	"github.com/yansal/youtube-ar/api/log"
 	"github.com/yansal/youtube-ar/api/manager"
 	"github.com/yansal/youtube-ar/api/resource"
@@ -21,7 +20,7 @@ import (
 // Server is the server cmd.
 func Server(ctx context.Context, args []string) error {
 	log := log.New()
-	redis, err := redis.New(log)
+	redis, err := newRedis(log)
 	if err != nil {
 		return err
 	}
@@ -32,7 +31,10 @@ func Server(ctx context.Context, args []string) error {
 	}
 	store := store.New(db)
 	manager := manager.NewServer(broker, store)
-	serializer := resource.NewSerializer()
+
+	serializer := resource.NewSerializer(
+		"https://" + os.Getenv("S3_BUCKET") + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/",
+	)
 
 	mux := server.NewMux()
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls$`), handler.ListURLs(manager, serializer))

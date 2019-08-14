@@ -12,14 +12,14 @@ import (
 )
 
 // New returns a new storage.
-func New() (*Storage, error) {
+func New(bucket string) (*Storage, error) {
 	s, err := session.NewSession()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Storage{
-		bucket: os.Getenv("S3_BUCKET"),
+		bucket: bucket,
 		s3:     s3.New(s),
 	}, nil
 }

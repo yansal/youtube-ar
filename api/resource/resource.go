@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/json"
-	"os"
 	"time"
 
 	"github.com/yansal/youtube-ar/api/model"
@@ -14,8 +13,10 @@ type Serializer struct {
 }
 
 // NewSerializer returns a new serializer.
-func NewSerializer() *Serializer {
-	return &Serializer{mediaURL: "https://" + os.Getenv("S3_BUCKET") + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/"}
+func NewSerializer(mediaURL string) *Serializer {
+	return &Serializer{
+		mediaURL: mediaURL,
+	}
 }
 
 // URL is the url resource.

@@ -3,7 +3,6 @@ package redis
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -12,12 +11,8 @@ import (
 )
 
 // New returns a new redis client.
-func New(logger log.Logger) (*redis.Client, error) {
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		redisURL = `redis://`
-	}
-	opts, err := redis.ParseURL(redisURL)
+func New(url string, logger log.Logger) (*redis.Client, error) {
+	opts, err := redis.ParseURL(url)
 	if err != nil {
 		return nil, err
 	}

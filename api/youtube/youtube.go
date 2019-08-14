@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"os"
 )
 
 // Video is the video resource.
@@ -14,9 +13,9 @@ type Video struct {
 }
 
 // New returns a new Client.
-func New(httpclient *http.Client) *Client {
+func New(apikey string, httpclient *http.Client) *Client {
 	return &Client{
-		apiKey: os.Getenv("YOUTUBE_API_KEY"),
+		apiKey: apikey,
 		client: httpclient,
 	}
 }

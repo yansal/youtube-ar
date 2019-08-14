@@ -6,9 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/yansal/youtube-ar/api/broker"
-	"github.com/yansal/youtube-ar/api/broker/redis"
 	"github.com/yansal/youtube-ar/api/log"
 	loghttp "github.com/yansal/youtube-ar/api/log/http"
 	"github.com/yansal/youtube-ar/api/manager"
@@ -37,7 +37,7 @@ func CreateURL(ctx context.Context, args []string) error {
 	}
 
 	log := log.New()
-	redis, err := redis.New(log)
+	redis, err := newRedis(log)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func CreateURLsFromPlaylist(ctx context.Context, args []string) error {
 	}
 
 	log := log.New()
-	redis, err := redis.New(log)
+	redis, err := newRedis(log)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,8 @@ func CreateURLsFromPlaylist(ctx context.Context, args []string) error {
 	store := store.New(db)
 	manager := manager.NewServer(broker, store)
 	httpclient := loghttp.Wrap(new(http.Client), log)
-	playlistLoader := service.NewPlaylistLoader(manager, store, youtube.New(httpclient))
+	youtube := youtube.New(os.Getenv("YOUTUBE_API_KEY"), httpclient)
+	playlistLoader := service.NewPlaylistLoader(manager, store, youtube)
 
 	return playlistLoader.CreateURLsFromYoutube(ctx, playlist)
 }
@@ -205,7 +206,7 @@ func ListURLs(ctx context.Context, args []string) error {
 // RetryNextDownloadURL is the retry-next-download-url cmd.
 func RetryNextDownloadURL(ctx context.Context, args []string) error {
 	log := log.New()
-	redis, err := redis.New(log)
+	redis, err := newRedis(log)
 	if err != nil {
 		return err
 	}
