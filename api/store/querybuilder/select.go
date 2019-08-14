@@ -147,3 +147,25 @@ func (offset offset) build(b *builder) {
 	b.write(" ")
 	b.bind(offset.i)
 }
+
+func Column(i interface{}) *SelectColumn {
+	return &SelectColumn{expr: newExpression(i)}
+}
+
+type SelectColumn struct {
+	expr Expression
+}
+
+func (s *SelectColumn) As(as string) Expression {
+	return &column{expr: s.expr, as: as}
+}
+
+type column struct {
+	expr Expression
+	as   string
+}
+
+func (c *column) build(b *builder) {
+	c.expr.build(b)
+	b.write(" AS " + c.as)
+}

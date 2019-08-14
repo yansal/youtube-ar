@@ -19,6 +19,12 @@ func TestSelect(t *testing.T) {
 		query: "SELECT unnest(logs[$1:])",
 		args:  []interface{}{1},
 	}, {
+		stmt: Select(
+			Column(Call("unnest", Index("logs", Bind(1)))).As("log"),
+		),
+		query: "SELECT unnest(logs[$1:]) AS log",
+		args:  []interface{}{1},
+	}, {
 		stmt:  Select("foo").Where("bar"),
 		query: "SELECT foo WHERE bar",
 	}, {
