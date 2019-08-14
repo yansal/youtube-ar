@@ -42,8 +42,8 @@ func (stmt *UpdateStmt) Set(set map[string]interface{}) *UpdateStmt {
 }
 
 // Where adds a where clause.
-func (stmt *UpdateStmt) Where(e Expr) *UpdateStmt {
-	stmt.where = newWhere(e)
+func (stmt *UpdateStmt) Where(where interface{}) *UpdateStmt {
+	stmt.where = newWhere(where)
 	return stmt
 }
 
@@ -54,18 +54,14 @@ func (stmt *UpdateStmt) Returning(values ...string) *UpdateStmt {
 }
 
 func newSet(m map[string]interface{}) *set {
-	exprs := make(map[string]Expr, len(m))
+	exprs := make(map[string]Expression, len(m))
 	for k, v := range m {
-		if expr, ok := v.(Expr); ok {
-			exprs[k] = expr
-		} else {
-			exprs[k] = NewBindValue(v)
-		}
+		exprs[k] = newBindExpression(v)
 	}
 	return &set{exprs: exprs}
 }
 
-type set struct{ exprs map[string]Expr }
+type set struct{ exprs map[string]Expression }
 
 func (set set) build(b *builder) {
 	b.write("SET ")

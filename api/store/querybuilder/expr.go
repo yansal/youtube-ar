@@ -2,61 +2,109 @@ package querybuilder
 
 import "fmt"
 
-// Expr is an expression.
-type Expr interface {
+// Expression is an expression.
+type Expression interface {
 	build(*builder)
 }
 
-// NewIdentifier returns a new identifier.
-func NewIdentifier(identifier string) *Identifier {
-	return &Identifier{identifier: identifier}
+// Expr returns a new infix expression.
+func Expr(left interface{}) *Infix {
+	return &Infix{left: newExpression(left)}
 }
 
-// Identifier is an identifier.
-type Identifier struct {
-	identifier string
+func newExpression(i interface{}) Expression {
+	if expr, ok := i.(Expression); ok {
+		return expr
+	}
+	return newValue(i)
 }
 
-// In returns a new Expr.
-func (i *Identifier) In(array interface{}) Expr {
-	return &infixExpr{left: newValue(i.identifier), op: "IN", right: newArray(array)}
+func newValue(v interface{}) Expression {
+	switch vv := v.(type) {
+	case string:
+		return value{s: vv}
+	default:
+		panic(fmt.Sprintf("don't know how to write value %#v", v))
+	}
 }
 
-// LessThan returns a new Expr.
-func (i *Identifier) LessThan(value interface{}) Expr {
-	return &infixExpr{left: newValue(i.identifier), op: "<", right: NewBindValue(value)}
+type value struct {
+	s string
 }
 
-// Equal returns a new Expr.
-func (i *Identifier) Equal(value interface{}) Expr {
-	return &infixExpr{left: newValue(i.identifier), op: "=", right: NewBindValue(value)}
+func (v value) build(b *builder) {
+	b.write(v.s)
 }
 
-// IsNull returns a new Expr.
-func (i *Identifier) IsNull() Expr {
-	return &infixExpr{left: newValue(i.identifier), op: "IS", right: newValue("NULL")}
+func newBindExpression(i interface{}) Expression {
+	if expr, ok := i.(Expression); ok {
+		return expr
+	}
+	return Bind(i)
 }
 
-// NewBoolExpr returns a new boolean expression.
-func NewBoolExpr(left Expr) *BoolExpr {
-	return &BoolExpr{left: left}
+// Bind returns a new bind value.
+func Bind(v interface{}) Expression {
+	return bindValue{v: v}
 }
 
-// BoolExpr is a boolean expression.
-type BoolExpr struct {
-	left Expr
+type bindValue struct {
+	v interface{}
 }
 
-// And returns a new Expr.
-func (i *BoolExpr) And(right Expr) Expr {
+func (v bindValue) build(b *builder) {
+	b.bind(v.v)
+}
+
+// Infix is an infix expression.
+type Infix struct {
+	left Expression
+}
+
+// In returns a new Expression.
+func (i *Infix) In(array interface{}) Expression {
+	return &infixExpr{left: i.left, op: "IN", right: newArray(array)}
+}
+
+// LessThan returns a new Expression.
+func (i *Infix) LessThan(value interface{}) Expression {
+	return &infixExpr{left: i.left, op: "<", right: Bind(value)}
+}
+
+// Equal returns a new Expression.
+func (i *Infix) Equal(value interface{}) Expression {
+	return &infixExpr{left: i.left, op: "=", right: Bind(value)}
+}
+
+// IsNull returns a new Expression.
+func (i *Infix) IsNull() Expression {
+	return &infixExpr{left: i.left, op: "IS", right: newValue("NULL")}
+}
+
+// And returns a new Expression.
+func (i *Infix) And(right Expression) Expression {
 	return &infixExpr{left: i.left, op: "AND", right: right}
 }
 
-// NewCallExpr returns a new call expression.
-func NewCallExpr(fun string, args ...interface{}) Expr {
-	callargs := make([]Expr, 0, len(args))
+type infixExpr struct {
+	left  Expression
+	op    string
+	right Expression
+}
+
+func (e infixExpr) build(b *builder) {
+	e.left.build(b)
+	b.write(" ")
+	b.write(e.op)
+	b.write(" ")
+	e.right.build(b)
+}
+
+// Call returns a new call expression.
+func Call(fun string, args ...interface{}) Expression {
+	callargs := make([]Expression, 0, len(args))
 	for _, arg := range args {
-		if expr, ok := arg.(Expr); ok {
+		if expr, ok := arg.(Expression); ok {
 			callargs = append(callargs, expr)
 		} else {
 			callargs = append(callargs, newValue(arg))
@@ -67,7 +115,7 @@ func NewCallExpr(fun string, args ...interface{}) Expr {
 
 type callExpr struct {
 	fun  string
-	args []Expr
+	args []Expression
 }
 
 func (e callExpr) build(b *builder) {
@@ -82,10 +130,10 @@ func (e callExpr) build(b *builder) {
 	b.write(")")
 }
 
-// NewIndexExpr returns a new index expression.
-func NewIndexExpr(array string, lower interface{}) Expr {
-	var lowerexpr Expr
-	if expr, ok := lower.(Expr); ok {
+// Index returns a new index expression.
+func Index(array string, lower interface{}) Expression {
+	var lowerexpr Expression
+	if expr, ok := lower.(Expression); ok {
 		lowerexpr = expr
 	} else {
 		lowerexpr = newValue(lower)
@@ -95,7 +143,7 @@ func NewIndexExpr(array string, lower interface{}) Expr {
 
 type indexExpr struct {
 	array string
-	lower Expr
+	lower Expression
 }
 
 func (e indexExpr) build(b *builder) {
@@ -129,48 +177,4 @@ func (a array) build(b *builder) {
 		b.bind(a[i])
 	}
 	b.write(")")
-}
-
-type infixExpr struct {
-	left  Expr
-	op    string
-	right Expr
-}
-
-func (e infixExpr) build(b *builder) {
-	e.left.build(b)
-	b.write(" ")
-	b.write(e.op)
-	b.write(" ")
-	e.right.build(b)
-}
-
-// NewBindValue returns a new bind value.
-func NewBindValue(v interface{}) Expr {
-	return bindValue{v: v}
-}
-
-type bindValue struct {
-	v interface{}
-}
-
-func (v bindValue) build(b *builder) {
-	b.bind(v.v)
-}
-
-func newValue(v interface{}) Expr {
-	switch vv := v.(type) {
-	case string:
-		return value{s: vv}
-	default:
-		panic(fmt.Sprintf("don't know how to write value %#v", v))
-	}
-}
-
-type value struct {
-	s string
-}
-
-func (v value) build(b *builder) {
-	b.write(v.s)
 }

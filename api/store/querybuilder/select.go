@@ -22,8 +22,8 @@ func (stmt *SelectStmt) From(table string) *SelectStmt {
 }
 
 // Where adds a where clause.
-func (stmt *SelectStmt) Where(e Expr) *SelectStmt {
-	stmt.where = newWhere(e)
+func (stmt *SelectStmt) Where(where interface{}) *SelectStmt {
+	stmt.where = newWhere(where)
 	return stmt
 }
 
@@ -80,18 +80,14 @@ func (stmt *SelectStmt) Build() (string, []interface{}) {
 }
 
 func newColumns(c ...interface{}) *columns {
-	exprs := make([]Expr, 0, len(c))
+	exprs := make([]Expression, 0, len(c))
 	for _, col := range c {
-		if expr, ok := col.(Expr); ok {
-			exprs = append(exprs, expr)
-		} else {
-			exprs = append(exprs, newValue(col))
-		}
+		exprs = append(exprs, newExpression((col)))
 	}
 	return &columns{exprs: exprs}
 }
 
-type columns struct{ exprs []Expr }
+type columns struct{ exprs []Expression }
 
 func (c columns) build(b *builder) {
 	for i := range c.exprs {
@@ -112,9 +108,9 @@ func (from from) build(b *builder) {
 	b.write(from.table)
 }
 
-func newWhere(expr Expr) *where { return &where{expr: expr} }
+func newWhere(i interface{}) *where { return &where{expr: newExpression(i)} }
 
-type where struct{ expr Expr }
+type where struct{ expr Expression }
 
 func (where where) build(b *builder) {
 	b.write("WHERE")
