@@ -103,9 +103,7 @@ func newFrom(table string) *from { return &from{table: table} }
 type from struct{ table string }
 
 func (from from) build(b *builder) {
-	b.write("FROM")
-	b.write(" ")
-	b.write(from.table)
+	b.write("FROM " + from.table)
 }
 
 func newWhere(i interface{}) *where { return &where{expr: newExpression(i)} }
@@ -113,8 +111,7 @@ func newWhere(i interface{}) *where { return &where{expr: newExpression(i)} }
 type where struct{ expr Expression }
 
 func (where where) build(b *builder) {
-	b.write("WHERE")
-	b.write(" ")
+	b.write("WHERE ")
 	where.expr.build(b)
 }
 
@@ -123,9 +120,7 @@ func newOrderBy(s string) *orderby { return &orderby{s: s} }
 type orderby struct{ s string }
 
 func (orderby orderby) build(b *builder) {
-	b.write("ORDER BY")
-	b.write(" ")
-	b.write(orderby.s)
+	b.write("ORDER BY " + orderby.s)
 }
 
 func newLimit(i int64) *limit { return &limit{i: i} }
@@ -133,8 +128,7 @@ func newLimit(i int64) *limit { return &limit{i: i} }
 type limit struct{ i int64 }
 
 func (limit limit) build(b *builder) {
-	b.write("LIMIT")
-	b.write(" ")
+	b.write("LIMIT ")
 	b.bind(limit.i)
 }
 
@@ -143,8 +137,7 @@ func newOffset(i int64) *offset { return &offset{i: i} }
 type offset struct{ i int64 }
 
 func (offset offset) build(b *builder) {
-	b.write("OFFSET")
-	b.write(" ")
+	b.write("OFFSET ")
 	b.bind(offset.i)
 }
 

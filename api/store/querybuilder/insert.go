@@ -28,9 +28,7 @@ func (stmt *InsertStmt) Returning(values ...string) *InsertStmt {
 // Build returns the built statement and its parameters.
 func (stmt *InsertStmt) Build() (string, []interface{}) {
 	b := new(builder)
-	b.write("INSERT INTO ")
-	b.write(stmt.table)
-	b.write("(")
+	b.write("INSERT INTO " + stmt.table + "(")
 	for i := range stmt.columns {
 		if i > 0 {
 			b.write(", ")

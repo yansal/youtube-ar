@@ -17,9 +17,7 @@ type UpdateStmt struct {
 func (stmt *UpdateStmt) Build() (string, []interface{}) {
 	b := new(builder)
 
-	b.write("UPDATE ")
-	b.write(stmt.table)
-	b.write(" ")
+	b.write("UPDATE " + stmt.table + " ")
 	stmt.set.build(b)
 
 	if stmt.where != nil {
@@ -70,8 +68,7 @@ func (set set) build(b *builder) {
 		if needcomma {
 			b.write(", ")
 		}
-		b.write(k)
-		b.write(" = ")
+		b.write(k + " = ")
 		expr.build(b)
 
 		needcomma = true
