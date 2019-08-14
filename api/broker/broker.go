@@ -37,7 +37,23 @@ func (b *Broker) Send(ctx context.Context, queue string, payload string) error {
 func (b *Broker) Receive(ctx context.Context, queue string, handler Handler) error {
 	fields := []log.Field{log.String("queue", queue)}
 	tmp := queue + ":tmp"
-	payload, err := b.redis.BRPopLPush(queue, tmp, 0).Result()
+
+	var (
+		payload string
+		err     error
+	)
+	c := make(chan struct{})
+	go func() {
+		payload, err = b.redis.BRPopLPush(queue, tmp, 0).Result()
+		c <- struct{}{}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-c:
+	}
+
 	if err == redis.Nil {
 		return nil
 	} else if err != nil {
@@ -68,6 +84,11 @@ func (b *Broker) Receive(ctx context.Context, queue string, handler Handler) err
 
 		b.log.Log(ctx, herr.Error(), fields...)
 
+		if ctx.Err() != nil {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+		}
 		failed := queue + ":failed"
 		if err := b.Send(ctx, failed, payload); err != nil {
 			b.log.Log(ctx, err.Error())

@@ -90,7 +90,9 @@ func TestBrokerReceiveErr(t *testing.T) {
 		return errors.New(serr)
 	}
 
-	b.Receive(context.Background(), queue, handler)
+	if err := b.Receive(context.Background(), queue, handler); err != nil {
+		t.Fatal(err)
+	}
 	assertf(t, lremed, `expected lrem to be called`)
 	assertf(t, lpushed, `expected lpush to be called`)
 }
@@ -118,7 +120,9 @@ func TestBrokerReceiveNoErr(t *testing.T) {
 		return nil
 	}
 
-	b.Receive(context.Background(), queue, handler)
+	if err := b.Receive(context.Background(), queue, handler); err != nil {
+		t.Fatal(err)
+	}
 	assertf(t, lremed, `expected lrem to be called`)
 }
 
@@ -164,7 +168,28 @@ func TestBrokerReceivePanic(t *testing.T) {
 			t.Errorf("unexpected panic: %v", r)
 		}
 	}()
-	b.Receive(context.Background(), queue, handler)
+	if err := b.Receive(context.Background(), queue, handler); err != nil {
+		t.Fatal(err)
+	}
 	assertf(t, lremed, `expected lrem to be called`)
 	assertf(t, lpushed, `expected lpush to be called`)
+}
+
+func TestBrokerReceiveCancel(t *testing.T) {
+	timeout := time.Millisecond
+	b := Broker{
+		redis: redisMock{
+			brpoplpushFunc: func(string, string, time.Duration) *redis.StringCmd {
+				<-time.After(2 * timeout)
+				return redis.NewStringResult(payload, errors.New("test timeout"))
+			},
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	err := b.Receive(ctx, queue, nil)
+	assertf(t, err == context.DeadlineExceeded,
+		"expected to get %v, got %v", context.DeadlineExceeded, err)
 }

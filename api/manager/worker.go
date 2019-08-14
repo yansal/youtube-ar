@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/yansal/youtube-ar/api/event"
 	"github.com/yansal/youtube-ar/api/model"
@@ -62,6 +63,11 @@ func (m *Worker) DownloadURL(ctx context.Context, e event.URL) error {
 			url.Status = "success"
 		}
 
+		if ctx.Err() != nil {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+		}
 		if err := m.store.UnlockURL(ctx, url); err != nil {
 			// TODO: log err
 		}
