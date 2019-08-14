@@ -50,7 +50,7 @@ func (tr *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 				tr.log.Log(req.Context(), rterr.Error(), fields...)
 				return
 			}
-			fields = append(fields, log.String("response-body", string(body)))
+			fields = append(fields, log.String("response_body", string(body)))
 			resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 		}
 
@@ -59,6 +59,10 @@ func (tr *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			fields...)
 	}()
 
-	resp, rterr = http.DefaultTransport.RoundTrip(req)
+	transport := tr.rt
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	resp, rterr = transport.RoundTrip(req)
 	return resp, rterr
 }
