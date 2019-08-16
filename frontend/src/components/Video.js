@@ -59,7 +59,7 @@ class Video extends React.Component {
 
           <button onClick={this.handleDelete}>Delete</button>
           <button>Retry</button>
-          <button>Download</button>
+          <div><a href={video.file} rel="noopener noreferrer" target="_blank">Download</a></div>
 
           <Link to={`/logs/${video.id}`}>logs</Link>
         </div>
