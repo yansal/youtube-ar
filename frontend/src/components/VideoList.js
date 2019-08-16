@@ -37,12 +37,13 @@ class VideoList extends React.Component {
   }
 
   handleNext = event => {
-    const { nextCursor } = this.state
-    // TODO: use state.filter
-    fetch(`${API_URL}/urls?cursor=${nextCursor}`).then(response => {
+    const { filter, nextCursor } = this.state
+    const baseURL = `${API_URL}/urls?cursor=${nextCursor}`
+    let url = filter === 'all' ? baseURL : `${baseURL}&status=${filter}`
+
+    fetch(url).then(response => {
       response.json().then(resource => {
         if (resource.urls === null) {
-          // TODO: remove next button?
           return
         }
 
@@ -101,7 +102,7 @@ class VideoList extends React.Component {
   }
 
   render() {
-    const { list } = this.state
+    const { nextCursor, list } = this.state
 
     const listNodes =
       list &&
@@ -120,7 +121,7 @@ class VideoList extends React.Component {
           <option value="pending">Pending</option>
         </select>
         {list ? <ul className="yar-video-list">{listNodes}</ul> : <div>Nothing to show!</div>}
-        <button onClick={this.handleNext}>Next</button>
+        {nextCursor > 0 && <button onClick={this.handleNext}>Next</button>}
       </div>
     )
   }
