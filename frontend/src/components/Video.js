@@ -43,6 +43,18 @@ class Video extends React.Component {
     })
   }
 
+  getStatus = () => {
+    const { video } = this.state
+    switch (video.status) {
+      case 'success':
+        return null
+      case 'failure':
+        return video.error
+      default:
+        return video.status
+    }
+  }
+
   render() {
     const { video } = this.state
 
@@ -56,16 +68,24 @@ class Video extends React.Component {
           )}
         </a>
 
-        <div className="yar-video-card__title">{video.oembed ? video.oembed.title : 'placeholder'}</div>
+        <div className="yar-video-card__title">
+          <a href={video.url}>{video.oembed ? video.oembed.title : video.url}</a>
+        </div>
 
         <div className="yar-video-card__actions">
-          <div>{video.status}</div>
+          <div>{this.getStatus()}</div>
 
           <button onClick={this.handleDelete}>Delete</button>
-          <button onClick={this.handleRetry}>Retry</button>
-          <div><a href={video.file} rel="noopener noreferrer" target="_blank">Download</a></div>
+          {video.status !== 'success' && <button onClick={this.handleRetry}>Retry</button>}
+          {video.file && (
+            <div>
+              <a href={video.file} rel="noopener noreferrer" target="_blank">
+                Download
+              </a>
+            </div>
+          )}
 
-          <Link to={`/logs/${video.id}`}>logs</Link>
+          <Link to={`/logs/${video.id}`}>Show logs</Link>
         </div>
       </li>
     )

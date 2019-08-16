@@ -38,7 +38,7 @@ class VideoList extends React.Component {
 
   handleNext = event => {
     const { filter, nextCursor } = this.state
-    const baseURL = `${API_URL}/urls?cursor=${nextCursor}`
+    const baseURL = `${API_URL}/urls?cursor=${nextCursor}&limit=12`
     let url = filter === 'all' ? baseURL : `${baseURL}&status=${filter}`
 
     fetch(url).then(response => {
@@ -92,8 +92,8 @@ class VideoList extends React.Component {
 
   refresh = () => {
     const { filter } = this.state
-    const baseURL = `${API_URL}/urls`
-    let url = filter === 'all' ? baseURL : `${baseURL}?status=${filter}`
+    const baseURL = `${API_URL}/urls?limit=12`
+    let url = filter === 'all' ? baseURL : `${baseURL}&status=${filter}`
     fetch(url).then(response => {
       response.json().then(resource => {
         this.setState({ list: resource.urls, nextCursor: resource.next_cursor })
