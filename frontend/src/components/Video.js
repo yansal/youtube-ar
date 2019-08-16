@@ -21,6 +21,14 @@ class Video extends React.Component {
     clearInterval(this.refreshInterval)
   }
 
+  handleDelete = event => {
+    this.props.onDelete(this.props.video.id)
+  }
+
+  handleRetry = event => {
+    this.props.onRetry(this.props.video.id)
+  }
+
   refresh = () => {
     const { video } = this.state
 
@@ -33,10 +41,6 @@ class Video extends React.Component {
         this.setState({ video })
       })
     })
-  }
-
-  handleDelete = event => {
-    this.props.onDelete(this.props.video.id)
   }
 
   render() {
@@ -58,7 +62,7 @@ class Video extends React.Component {
           <div>{video.status}</div>
 
           <button onClick={this.handleDelete}>Delete</button>
-          <button>Retry</button>
+          <button onClick={this.handleRetry}>Retry</button>
           <div><a href={video.file} rel="noopener noreferrer" target="_blank">Download</a></div>
 
           <Link to={`/logs/${video.id}`}>logs</Link>

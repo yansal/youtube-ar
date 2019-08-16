@@ -38,6 +38,7 @@ class VideoList extends React.Component {
 
   handleNext = event => {
     const { nextCursor } = this.state
+    // TODO: use state.filter
     fetch(`${API_URL}/urls?cursor=${nextCursor}`).then(response => {
       response.json().then(resource => {
         if (resource.urls === null) {
@@ -48,6 +49,16 @@ class VideoList extends React.Component {
         const { list } = this.state
         const updatedList = list.concat(resource.urls)
         this.setState({ list: updatedList, nextCursor: resource.next_cursor })
+      })
+    })
+  }
+
+  handleRetry = id => {
+    fetch(`${API_URL}/urls/${id}/retry`, {
+      method: 'POST'
+    }).then(response => {
+      response.json().then(resource => {
+        this.addVideo(resource)
       })
     })
   }
@@ -63,14 +74,18 @@ class VideoList extends React.Component {
         url: value
       })
     }).then(response => {
-      response.json().then(res => {
-        const { list } = this.state
-        const updatedList = (list && [res, ...list]) || [res]
-
-        this.setState({
-          list: updatedList
-        })
+      response.json().then(resource => {
+        this.addVideo(resource)
       })
+    })
+  }
+
+  addVideo = resource => {
+    const { list } = this.state
+    const updatedList = (list && [resource, ...list]) || [resource]
+
+    this.setState({
+      list: updatedList
     })
   }
 
@@ -88,7 +103,9 @@ class VideoList extends React.Component {
   render() {
     const { list } = this.state
 
-    const listNodes = list && list.map(video => <Video key={video.id} video={video} onDelete={this.handleDelete} />)
+    const listNodes =
+      list &&
+      list.map(video => <Video key={video.id} video={video} onDelete={this.handleDelete} onRetry={this.handleRetry} />)
 
     return (
       <div>
