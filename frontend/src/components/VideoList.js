@@ -19,37 +19,21 @@ class VideoList extends React.Component {
     this.refresh()
   }
 
-  refresh() {
-    const { filter } = this.state
-    const baseURL = `${API_URL}/urls`
-    let url = filter === 'all' ? baseURL : `${baseURL}?status=${filter}`
-    fetch(url).then(response => {
-      response.json().then(resource => {
-        this.setState({ list: resource.urls, nextCursor: resource.next_cursor })
+  handleDelete = id => {
+    fetch(`${API_URL}/urls/${id}`, {
+      method: 'DELETE'
+    }).then(response => {
+      const { list } = this.state
+      const updatedList = list.filter(video => video.id !== id)
+
+      this.setState({
+        list: updatedList
       })
     })
   }
 
-  handleSubmit = event => {
-    event.preventDefault()
-
-    const { value } = this.videoInput && this.videoInput.current
-
-    fetch(`${API_URL}/urls`, {
-      method: 'POST',
-      body: JSON.stringify({
-        url: value
-      })
-    }).then(response => {
-      response.json().then(res => {
-        const { list } = this.state
-        const updatedList = [res, ...list]
-
-        this.setState({
-          list: updatedList
-        })
-      })
-    })
+  handleFilterChange = event => {
+    this.setState({ filter: event.target.value }, this.refresh)
   }
 
   handleNext = event => {
@@ -68,28 +52,57 @@ class VideoList extends React.Component {
     })
   }
 
-  handleChange = event => {
-    this.setState({ filter: event.target.value }, this.refresh)
+  handleSubmit = event => {
+    event.preventDefault()
+
+    const { value } = this.videoInput && this.videoInput.current
+
+    fetch(`${API_URL}/urls`, {
+      method: 'POST',
+      body: JSON.stringify({
+        url: value
+      })
+    }).then(response => {
+      response.json().then(res => {
+        const { list } = this.state
+        const updatedList = (list && [res, ...list]) || [res]
+
+        this.setState({
+          list: updatedList
+        })
+      })
+    })
+  }
+
+  refresh = () => {
+    const { filter } = this.state
+    const baseURL = `${API_URL}/urls`
+    let url = filter === 'all' ? baseURL : `${baseURL}?status=${filter}`
+    fetch(url).then(response => {
+      response.json().then(resource => {
+        this.setState({ list: resource.urls, nextCursor: resource.next_cursor })
+      })
+    })
   }
 
   render() {
     const { list } = this.state
 
-    const listNodes = list && list.map(video => <Video key={video.id} video={video} />)
+    const listNodes = list && list.map(video => <Video key={video.id} video={video} onDelete={this.handleDelete} />)
 
     return (
       <div>
         <form onSubmit={this.handleSubmit}>
           <input type="text" ref={this.videoInput} />
         </form>
-        <select value={this.state.filter} onChange={this.handleChange}>
+        <select value={this.state.filter} onChange={this.handleFilterChange}>
           <option value="all">All</option>
           <option value="success">Success</option>
           <option value="failure">Failure</option>
           <option value="processing">Processing</option>
           <option value="pending">Pending</option>
         </select>
-        {list ? <ul>{listNodes}</ul> : <div>Nothing to show!</div>}
+        {list ? <ul className="yar-video-list">{listNodes}</ul> : <div>Nothing to show!</div>}
         <button onClick={this.handleNext}>Next</button>
       </div>
     )

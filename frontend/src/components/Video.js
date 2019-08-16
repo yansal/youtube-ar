@@ -9,7 +9,7 @@ class Video extends React.Component {
     super(props)
 
     this.state = {
-      status: props.video.status
+      video: props.video
     }
   }
 
@@ -22,32 +22,48 @@ class Video extends React.Component {
   }
 
   refresh = () => {
-    const { id } = this.props && this.props.video
-    const { status } = this.state
+    const { video } = this.state
 
-    if (status !== 'pending' && status !== 'processing') {
+    if (video.status !== 'pending' && video.status !== 'processing') {
       return clearInterval(this.refreshInterval)
     }
 
-    fetch(`${API_URL}/urls/${id}`).then(response => {
+    fetch(`${API_URL}/urls/${video.id}`).then(response => {
       response.json().then(video => {
-        this.setState({
-          status: video.status
-        })
+        this.setState({ video })
       })
     })
   }
 
+  handleDelete = event => {
+    this.props.onDelete(this.props.video.id)
+  }
+
   render() {
-    const { status } = this.state
-    const { video } = this.props
+    const { video } = this.state
 
     return (
-      <Link to={`/logs/${video.id}`}>
-        <li>
-          {video.url} ({status})
-        </li>
-      </Link>
+      <li className="yar-video-card">
+        <a className="yar-video-card__image" href={video.url}>
+          {video.oembed ? (
+            <img alt={video.oembed.title} className="yar-video-card__thumbnail" src={video.oembed.thumbnail_url} />
+          ) : (
+            <img alt="placeholder" className="yar-video-card__thumbnail" src="https://via.placeholder.com/480x360" />
+          )}
+        </a>
+
+        <div className="yar-video-card__title">{video.oembed ? video.oembed.title : 'placeholder'}</div>
+
+        <div className="yar-video-card__actions">
+          <div>{video.status}</div>
+
+          <button onClick={this.handleDelete}>Delete</button>
+          <button>Retry</button>
+          <button>Download</button>
+
+          <Link to={`/logs/${video.id}`}>logs</Link>
+        </div>
+      </li>
     )
   }
 }
@@ -56,7 +72,7 @@ Video.propTypes = {
   video: PropTypes.shape({
     id: PropTypes.number,
     status: PropTypes.string,
-    url: PropTypes.string,
+    url: PropTypes.string
   })
 }
 
