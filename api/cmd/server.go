@@ -42,9 +42,13 @@ func Server(ctx context.Context, args []string) error {
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls$`), handler.ListURLs(manager, serializer))
 	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls$`), handler.CreateURL(manager, serializer))
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)$`), handler.DetailURL(manager, serializer))
+
 	mux.HandleFunc(http.MethodDelete, regexp.MustCompile(`^/urls/(\d+)$`), handler.DeleteURL(manager))
+	mux.HandleFunc(http.MethodOptions, regexp.MustCompile(`^/urls/(\d+)$`), func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Methods", http.MethodDelete)
+	})
+
 	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)/logs$`), handler.ListLogs(manager, serializer))
-	mux.HandleFunc(http.MethodOptions, regexp.MustCompile(`.*`), func(w http.ResponseWriter, r *http.Request){})
 
 	retrier := service.NewRetrier(broker, manager, store)
 	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls/(\d+)/retry$`), handler.RetryDownloadURL(retrier, serializer))
