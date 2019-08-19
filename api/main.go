@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"sort"
 	"strings"
+	"syscall"
 
 	"github.com/yansal/youtube-ar/api/cmd"
 	"golang.org/x/sync/errgroup"
@@ -49,7 +50,7 @@ func main() {
 	g, ctx := errgroup.WithContext(context.Background())
 	g.Go(func() error {
 		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 		select {
 		case <-ctx.Done():
 		case <-c:
