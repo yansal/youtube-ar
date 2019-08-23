@@ -128,7 +128,7 @@ func DownloadURL(ctx context.Context, args []string) error {
 	}
 
 	d := youtubedl.New()
-	stream := d.Download(ctx, url)
+	stream := d.Download(ctx, url, "")
 	for event := range stream {
 		switch event.Type {
 		case youtubedl.Log:

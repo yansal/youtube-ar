@@ -1,4 +1,4 @@
-package youtubedl
+package tor
 
 import (
 	"bufio"
@@ -6,33 +6,35 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"os/exec"
-	"path/filepath"
+	"strings"
 	"sync"
 )
 
-// New returns a new YoutubeDL.
-func New() *YoutubeDL {
-	return &YoutubeDL{}
+// Tor is a tor process starter.
+type Tor struct{}
+
+// New returns a new Tor.
+func New() *Tor {
+	return &Tor{}
 }
 
-// YoutubeDL is a downloader.
-type YoutubeDL struct{}
-
-// Download downloads url and returns a stream of Event.
-func (p *YoutubeDL) Download(ctx context.Context, url string, proxyaddr string) <-chan Event {
+// Start starts a new tor process.
+func (*Tor) Start(ctx context.Context) <-chan Event {
 	stream := make(chan Event)
 	go func() {
 		defer close(stream)
-
-		dir, err := ioutil.TempDir("", "youtube-ar-youtube-dl-")
+		dir, err := ioutil.TempDir("", "youtube-ar-tor-")
 		if err != nil {
 			stream <- Event{Type: Failure, Err: err}
 			return
 		}
+		defer os.RemoveAll(dir)
 
-		cmd := exec.CommandContext(ctx, "youtube-dl", "--newline", "--proxy", proxyaddr, "--verbose", url)
-		cmd.Dir = dir
+		port := getRandomPort()
+		cmd := exec.CommandContext(ctx, "tor", "-f", "-")
+		cmd.Stdin = strings.NewReader(fmt.Sprintf(torrcformat, dir, port))
 
 		// stream stderr and stdout
 		stderr, err := cmd.StderrPipe()
@@ -51,6 +53,9 @@ func (p *YoutubeDL) Download(ctx context.Context, url string, proxyaddr string) 
 			defer wg.Done()
 			s := bufio.NewScanner(r)
 			for s.Scan() {
+				if strings.Contains(s.Text(), `Bootstrapped 100%`) {
+					stream <- Event{Type: Ready, ProxyURL: "socks5://localhost:" + port}
+				}
 				stream <- Event{Type: Log, Log: s.Text()}
 			}
 		}
@@ -67,28 +72,24 @@ func (p *YoutubeDL) Download(ctx context.Context, url string, proxyaddr string) 
 			stream <- Event{Type: Failure, Err: err}
 			return
 		}
-
-		fis, err := ioutil.ReadDir(dir)
-		if err != nil {
-			stream <- Event{Type: Failure, Err: err}
-			return
-		}
-		if len(fis) != 1 {
-			err := fmt.Errorf("expected 1 file in %s, got %d", dir, len(fis))
-			stream <- Event{Type: Failure, Err: err}
-			return
-		}
-		stream <- Event{Type: Success, Path: filepath.Join(dir, fis[0].Name())}
 	}()
 	return stream
 }
 
-// Event is a downloader event.
+func getRandomPort() string {
+	// TODO: get a random port from the OS, just like net.Listen does
+	return "9051"
+}
+
+const torrcformat = `DataDirectory %s
+SocksPort %s`
+
+// Event is a tor process event.
 type Event struct {
-	Type EventType
-	Log  string
-	Err  error
-	Path string
+	Type     EventType
+	Log      string
+	Err      error
+	ProxyURL string
 }
 
 // EventType is an event type.
@@ -98,5 +99,5 @@ type EventType int
 const (
 	Log EventType = iota
 	Failure
-	Success
+	Ready
 )

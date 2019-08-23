@@ -13,6 +13,7 @@ import (
 	"github.com/yansal/youtube-ar/api/oembed"
 	"github.com/yansal/youtube-ar/api/storage"
 	"github.com/yansal/youtube-ar/api/store"
+	"github.com/yansal/youtube-ar/api/tor"
 	"github.com/yansal/youtube-ar/api/worker"
 	"github.com/yansal/youtube-ar/api/worker/handler"
 	"github.com/yansal/youtube-ar/api/youtubedl"
@@ -36,7 +37,7 @@ func Worker(ctx context.Context, args []string) error {
 		return err
 	}
 	store := store.New(db)
-	downloader := downloader.New(youtubedl.New(), storage, store, log)
+	downloader := downloader.New(tor.New(), youtubedl.New(), storage, store, log)
 	httpclient := loghttp.Wrap(new(http.Client), log)
 	m := manager.NewWorker(downloader, oembed.NewClient(httpclient), store)
 
