@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -25,7 +26,7 @@ type YoutubeDL interface {
 
 // Storage is the storage interface required by Downloader.
 type Storage interface {
-	Save(ctx context.Context, path string) (string, error)
+	Save(ctx context.Context, path string, reader io.ReadSeeker) error
 }
 
 // Store is the store interface required by Downloader.
@@ -57,14 +58,20 @@ func (p *Downloader) DownloadURL(ctx context.Context, url *model.URL) (string, e
 			path = event.Path
 		}
 	}
-	defer os.Remove(path)
+	defer os.RemoveAll(filepath.Dir(path))
 	if err != nil {
 		return "", err
 	}
 
-	uploaded, err := p.storage.Save(ctx, path)
+	f, err := os.Open(path)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Base(uploaded), nil
+	defer f.Close()
+
+	filename := filepath.Base(path)
+	if err := p.storage.Save(ctx, filename, f); err != nil {
+		return "", err
+	}
+	return filename, nil
 }

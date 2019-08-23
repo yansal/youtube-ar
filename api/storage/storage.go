@@ -2,8 +2,7 @@ package storage
 
 import (
 	"context"
-	"os"
-	"path/filepath"
+	"io"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,18 +30,13 @@ type Storage struct {
 }
 
 // Save saves file located at path.
-func (s *Storage) Save(ctx context.Context, path string) (string, error) {
+func (s *Storage) Save(ctx context.Context, path string, reader io.ReadSeeker) error {
 	// TODO: add logs
 
-	f, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
 	input := &s3.PutObjectInput{
-		Body:   f,
+		Body:   reader,
 		Bucket: aws.String(s.bucket),
-		Key:    aws.String(filepath.Base(path)),
+		Key:    aws.String(path),
 	}
 
 	switch {
@@ -54,8 +48,6 @@ func (s *Storage) Save(ctx context.Context, path string) (string, error) {
 		input.ContentType = aws.String("video/webm")
 	}
 
-	if _, err := s.s3.PutObjectWithContext(ctx, input); err != nil {
-		return "", err
-	}
-	return path, nil
+	_, err := s.s3.PutObjectWithContext(ctx, input)
+	return err
 }
