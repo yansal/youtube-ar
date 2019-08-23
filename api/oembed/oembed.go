@@ -71,7 +71,10 @@ func (c *Client) find(ctx context.Context, url string) (string, error) {
 		}
 
 		oembedURL := *provider.endpoint.URL
-		oembedURL.RawQuery = urlpkg.Values{"url": []string{url}}.Encode()
+		oembedURL.RawQuery = urlpkg.Values{
+			"format": []string{"json"},
+			"url":    []string{url},
+		}.Encode()
 		return oembedURL.String(), nil
 	}
 
@@ -117,7 +120,7 @@ func findHref(n *html.Node) string {
 
 	var ok bool
 	for i := range n.Attr {
-		if n.Attr[i].Key == "type" && strings.HasSuffix(n.Attr[i].Val, "+oembed") {
+		if n.Attr[i].Key == "type" && strings.Contains(n.Attr[i].Val, "json+oembed") {
 			ok = true
 			break
 		}
