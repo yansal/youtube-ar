@@ -31,7 +31,7 @@ func Server(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	store := store.New(db)
+	store := store.New()
 	manager := manager.NewServer(broker, store)
 
 	serializer := resource.NewSerializer(
@@ -39,19 +39,19 @@ func Server(ctx context.Context, args []string) error {
 	)
 
 	mux := server.NewMux()
-	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls$`), handler.ListURLs(manager, serializer))
-	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls$`), handler.CreateURL(manager, serializer))
-	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)$`), handler.DetailURL(manager, serializer))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls$`), handler.ListURLs(manager, db, serializer))
+	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls$`), handler.CreateURL(manager, db, serializer))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)$`), handler.DetailURL(manager, db, serializer))
 
-	mux.HandleFunc(http.MethodDelete, regexp.MustCompile(`^/urls/(\d+)$`), handler.DeleteURL(manager))
+	mux.HandleFunc(http.MethodDelete, regexp.MustCompile(`^/urls/(\d+)$`), handler.DeleteURL(manager, db))
 	mux.HandleFunc(http.MethodOptions, regexp.MustCompile(`^/urls/(\d+)$`), func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Methods", http.MethodDelete)
 	})
 
-	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)/logs$`), handler.ListLogs(manager, serializer))
+	mux.HandleFunc(http.MethodGet, regexp.MustCompile(`^/urls/(\d+)/logs$`), handler.ListLogs(manager, db, serializer))
 
 	retrier := service.NewRetrier(broker, manager, store)
-	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls/(\d+)/retry$`), handler.RetryDownloadURL(retrier, serializer))
+	mux.HandleFunc(http.MethodPost, regexp.MustCompile(`^/urls/(\d+)/retry$`), handler.RetryDownloadURL(retrier, db, serializer))
 
 	handler := middleware.Log(mux, log)
 	handler = middleware.CORS(handler)

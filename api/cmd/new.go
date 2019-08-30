@@ -25,7 +25,7 @@ func newSQLDB(log log.Logger) (*storesql.DB, error) {
 
 	connector := logsql.Wrap(pqconnector, log)
 
-	return &storesql.DB{DB: sql.OpenDB(connector)}, nil
+	return storesql.NewDB(sql.OpenDB(connector)), nil
 }
 
 func newRedis(log log.Logger) (*redis.Client, error) {

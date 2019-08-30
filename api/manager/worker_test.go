@@ -8,6 +8,7 @@ import (
 
 	"github.com/yansal/youtube-ar/api/event"
 	"github.com/yansal/youtube-ar/api/model"
+	storesql "github.com/yansal/youtube-ar/api/store/sql"
 )
 
 func assertf(t *testing.T, ok bool, msg string, args ...interface{}) {
@@ -21,7 +22,7 @@ type dowloaderMock struct {
 	downloadURLFunc func(context.Context, *model.URL) (string, error)
 }
 
-func (p dowloaderMock) DownloadURL(ctx context.Context, url *model.URL) (string, error) {
+func (p dowloaderMock) DownloadURL(ctx context.Context, db storesql.Execer, url *model.URL) (string, error) {
 	return p.downloadURLFunc(ctx, url)
 }
 
@@ -29,15 +30,15 @@ type storeMock struct {
 	unlockURLFunc func(context.Context, *model.URL) error
 }
 
-func (s storeMock) LockURL(ctx context.Context, url *model.URL) error {
+func (s storeMock) LockURL(ctx context.Context, db storesql.Execer, url *model.URL) error {
 	return nil
 }
 
-func (s storeMock) UnlockURL(ctx context.Context, url *model.URL) error {
+func (s storeMock) UnlockURL(ctx context.Context, db storesql.Execer, url *model.URL) error {
 	return s.unlockURLFunc(ctx, url)
 }
 
-func (s storeMock) SetOEmbed(ctx context.Context, url *model.URL) error {
+func (s storeMock) SetOEmbed(ctx context.Context, db storesql.Execer, url *model.URL) error {
 	return nil
 }
 
@@ -65,7 +66,7 @@ func TestDownloadURLFailure(t *testing.T) {
 		},
 	}
 
-	err := m.DownloadURL(context.Background(), event.URL{})
+	err := m.DownloadURL(context.Background(), nil, event.URL{})
 	assertf(t, err.Error() == serr,
 		`expected err to be %q, got %+v`, serr, err,
 	)
@@ -95,7 +96,7 @@ func TestDownloadURLSuccess(t *testing.T) {
 		},
 	}
 
-	err := m.DownloadURL(context.Background(), event.URL{})
+	err := m.DownloadURL(context.Background(), nil, event.URL{})
 	assertf(t, err == nil, `expected err to be nil, got %+v`, err)
 }
 
@@ -135,6 +136,6 @@ func TestDownloadURLPanic(t *testing.T) {
 			assertf(t, unlocked, `expected the unlock method to be called`)
 		}
 	}()
-	_ = m.DownloadURL(context.Background(), event.URL{})
+	_ = m.DownloadURL(context.Background(), nil, event.URL{})
 	t.Error("expected panic")
 }
