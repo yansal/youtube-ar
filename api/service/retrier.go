@@ -8,6 +8,7 @@ import (
 	"github.com/yansal/youtube-ar/api/event"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/payload"
+	storesql "github.com/yansal/youtube-ar/api/store/sql"
 )
 
 // Retrier is a retrier.
@@ -25,12 +26,12 @@ type RetrierBroker interface {
 
 // RetrierManager is the manager interface required by Retrier.
 type RetrierManager interface {
-	CreateURL(context.Context, payload.URL) (*model.URL, error)
+	CreateURL(context.Context, storesql.QueryStructer, payload.URL) (*model.URL, error)
 }
 
 // RetrierStore is the store interface required by Retrier.
 type RetrierStore interface {
-	GetURL(context.Context, int64) (*model.URL, error)
+	GetURL(context.Context, storesql.QueryStructer, int64) (*model.URL, error)
 }
 
 // NewRetrier returns a new Retrier.
@@ -39,7 +40,7 @@ func NewRetrier(broker RetrierBroker, manager RetrierManager, store RetrierStore
 }
 
 // RetryNextDownloadURL retries the next failed download-url event.
-func (r *Retrier) RetryNextDownloadURL(ctx context.Context) error {
+func (r *Retrier) RetryNextDownloadURL(ctx context.Context, db storesql.QueryStructer) error {
 	// TODO: use an atomic rpoplpush to ensure we don't lose any failed event?
 	b, err := r.broker.PopNextFailed(ctx, "download-url")
 	if err == redis.Nil {
@@ -52,7 +53,7 @@ func (r *Retrier) RetryNextDownloadURL(ctx context.Context) error {
 	if err := json.Unmarshal([]byte(b), &e); err != nil {
 		return err
 	}
-	failed, err := r.store.GetURL(ctx, e.ID)
+	failed, err := r.store.GetURL(ctx, db, e.ID)
 	if err != nil {
 		return err
 	}
@@ -65,12 +66,12 @@ func (r *Retrier) RetryNextDownloadURL(ctx context.Context) error {
 		return nil
 	}
 
-	_, err = r.retry(ctx, failed)
+	_, err = r.retry(ctx, db, failed)
 	return err
 }
 
 // RetryDownloadURL retries the download-url event with the given id.
-func (r *Retrier) RetryDownloadURL(ctx context.Context, id int64) (*model.URL, error) {
+func (r *Retrier) RetryDownloadURL(ctx context.Context, db storesql.QueryStructer, id int64) (*model.URL, error) {
 	e := &event.URL{ID: id}
 	b, err := json.Marshal(e)
 	if err != nil {
@@ -82,18 +83,18 @@ func (r *Retrier) RetryDownloadURL(ctx context.Context, id int64) (*model.URL, e
 		return nil, err
 	}
 
-	failed, err := r.store.GetURL(ctx, e.ID)
+	failed, err := r.store.GetURL(ctx, db, e.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return r.retry(ctx, failed)
+	return r.retry(ctx, db, failed)
 }
 
-func (r *Retrier) retry(ctx context.Context, failed *model.URL) (*model.URL, error) {
+func (r *Retrier) retry(ctx context.Context, db storesql.QueryStructer, failed *model.URL) (*model.URL, error) {
 	url := payload.URL{
 		URL:     failed.URL,
 		Retries: failed.Retries.Int64 + 1,
 	}
-	return r.manager.CreateURL(ctx, url)
+	return r.manager.CreateURL(ctx, db, url)
 }

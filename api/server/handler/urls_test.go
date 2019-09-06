@@ -10,6 +10,7 @@ import (
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/query"
 	"github.com/yansal/youtube-ar/api/resource"
+	storesql "github.com/yansal/youtube-ar/api/store/sql"
 )
 
 func assertf(t *testing.T, ok bool, msg string, args ...interface{}) {
@@ -23,7 +24,7 @@ type mockManager struct {
 	listURLsFunc func(context.Context, *query.URLs) ([]model.URL, error)
 }
 
-func (m mockManager) ListURLs(ctx context.Context, q *query.URLs) ([]model.URL, error) {
+func (m mockManager) ListURLs(ctx context.Context, db storesql.QueryStructSlicer, q *query.URLs) ([]model.URL, error) {
 	return m.listURLsFunc(ctx, q)
 }
 
@@ -40,7 +41,7 @@ func TestListURLs(t *testing.T) {
 			assertf(t, q.Status == nil, "expected status to be nil, got %v", q.Status)
 			return nil, nil
 		},
-	}, mockSerializer{})
+	}, nil, mockSerializer{})
 
 	var u url.URL
 	req, err := http.NewRequest("", u.String(), nil)
@@ -69,7 +70,7 @@ func TestListURLsQuery(t *testing.T) {
 			}
 			return nil, nil
 		},
-	}, mockSerializer{})
+	}, nil, mockSerializer{})
 
 	v := url.Values{
 		"status": status,

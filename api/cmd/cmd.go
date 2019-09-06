@@ -46,15 +46,14 @@ func CreateURL(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	store := store.New(db)
-	m := manager.NewServer(broker, store)
+	m := manager.NewServer(broker, store.New())
 
 	p := payload.URL{URL: url}
 	if err := p.Validate(); err != nil {
 		return err
 	}
 
-	if _, err := m.CreateURL(ctx, p); err != nil {
+	if _, err := m.CreateURL(ctx, db, p); err != nil {
 		return err
 	}
 	return nil
@@ -78,17 +77,17 @@ func CreateURLsFromPlaylist(ctx context.Context, args []string) error {
 		return err
 	}
 	broker := broker.New(redis, log)
-	db, err := newSQLDB(log)
-	if err != nil {
-		return err
-	}
-	store := store.New(db)
+	store := store.New()
 	manager := manager.NewServer(broker, store)
 	httpclient := loghttp.Wrap(new(http.Client), log)
 	youtube := youtube.New(os.Getenv("YOUTUBE_API_KEY"), httpclient)
 	playlistLoader := service.NewPlaylistLoader(manager, store, youtube)
 
-	return playlistLoader.CreateURLsFromYoutube(ctx, playlist)
+	db, err := newSQLDB(log)
+	if err != nil {
+		return err
+	}
+	return playlistLoader.CreateURLsFromYoutube(ctx, db, playlist)
 }
 
 // GetOembed is the get-oembed cmd.
@@ -161,10 +160,9 @@ func ListLogs(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	store := store.New(db)
-	m := manager.NewServer(nil, store)
+	m := manager.NewServer(nil, store.New())
 
-	logs, err := m.ListLogs(ctx, urlID, &query.Logs{Cursor: cursor})
+	logs, err := m.ListLogs(ctx, db, urlID, &query.Logs{Cursor: cursor})
 	if err != nil {
 		return err
 	}
@@ -190,10 +188,9 @@ func ListURLs(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	store := store.New(db)
-	m := manager.NewServer(nil, store)
+	m := manager.NewServer(nil, store.New())
 
-	urls, err := m.ListURLs(ctx, &query.URLs{Cursor: cursor, Limit: limit})
+	urls, err := m.ListURLs(ctx, db, &query.URLs{Cursor: cursor, Limit: limit})
 	if err != nil {
 		return err
 	}
@@ -215,9 +212,9 @@ func RetryNextDownloadURL(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	store := store.New(db)
+	store := store.New()
 	manager := manager.NewServer(broker, store)
 
 	retrier := service.NewRetrier(broker, manager, store)
-	return retrier.RetryNextDownloadURL(ctx)
+	return retrier.RetryNextDownloadURL(ctx, db)
 }

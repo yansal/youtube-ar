@@ -36,14 +36,14 @@ func Worker(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	store := store.New(db)
+	store := store.New()
 	downloader := downloader.New(tor.New(), youtubedl.New(), storage, store, log)
 	httpclient := loghttp.Wrap(new(http.Client), log)
 	m := manager.NewWorker(downloader, oembed.NewClient(httpclient), store)
 
 	w := worker.New(b, map[string]broker.Handler{
-		"download-url": handler.DownloadURL(m),
-		"get-oembed":   handler.GetOEmbed(m),
+		"download-url": handler.DownloadURL(m, db),
+		"get-oembed":   handler.GetOEmbed(m, db),
 	})
 	return w.Listen(ctx)
 }
