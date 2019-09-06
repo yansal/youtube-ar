@@ -25,9 +25,14 @@ type URL struct {
 
 // ShouldRetry reports whether u failed because of a rate limiter or a geo limitation.
 func (u URL) ShouldRetry() bool {
+	if u.Error.String == "signal: killed" {
+		return true
+	}
+
 	if u.Error.String != "exit status 1" {
 		return false
 	}
+
 	log := strings.Join(u.Logs, "\n")
 	for _, re := range shouldRetryRegexps {
 		if re.MatchString(log) {
