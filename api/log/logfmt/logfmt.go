@@ -9,11 +9,11 @@ import (
 // Marshal marshals v.
 func Marshal(m map[string]string) ([]byte, error) {
 	keys := make([]string, 0, len(m))
-	var fields []string
 	for key := range m {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
+	var fields []string
 	for _, key := range keys {
 		format := "%s=%s"
 		value := m[key]
