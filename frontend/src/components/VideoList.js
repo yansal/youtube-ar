@@ -33,7 +33,7 @@ class VideoList extends React.Component {
     })
   }
 
-  handleFilterChange = event => {
+  handleStatusChange = event => {
     this.setState({ status: event.target.value }, this.refresh)
   }
 
@@ -45,7 +45,7 @@ class VideoList extends React.Component {
     const { search, status, nextCursor } = this.state
     const baseURL = `${API_URL}/urls?cursor=${nextCursor}&limit=12`
     let url = status === 'all' ? baseURL : `${baseURL}&status=${status}`
-    url = search === '' ? baseURL : `${baseURL}&q=${search}`
+    url = search === '' ? url : `${url}&q=${search}`
 
     fetch(url).then(response => {
       response.json().then(resource => {
@@ -100,7 +100,7 @@ class VideoList extends React.Component {
     const { search, status } = this.state
     const baseURL = `${API_URL}/urls?limit=12`
     let url = status === 'all' ? baseURL : `${baseURL}&status=${status}`
-    url = search === '' ? baseURL : `${baseURL}&q=${search}`
+    url = search === '' ? url : `${url}&q=${search}`
     fetch(url).then(response => {
       response.json().then(resource => {
         this.setState({ list: resource.urls, nextCursor: resource.next_cursor })
@@ -120,7 +120,7 @@ class VideoList extends React.Component {
         <form onSubmit={this.handleSubmit}>
           <input type="text" ref={this.videoInput} placeholder="Paste a URL"/>
         </form>
-        <select value={this.state.status} onChange={this.handleFilterChange}>
+        <select value={this.state.status} onChange={this.handleStatusChange}>
           <option value="all">All</option>
           <option value="success">Success</option>
           <option value="failure">Failure</option>
