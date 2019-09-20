@@ -16,8 +16,8 @@ type SelectStmt struct {
 }
 
 // From adds a from clause.
-func (stmt *SelectStmt) From(table string) *SelectStmt {
-	stmt.from = newFrom(table)
+func (stmt *SelectStmt) From(from ...interface{}) *SelectStmt {
+	stmt.from = newFrom(from...)
 	return stmt
 }
 
@@ -28,8 +28,8 @@ func (stmt *SelectStmt) Where(where interface{}) *SelectStmt {
 }
 
 // OrderBy adds an order by.
-func (stmt *SelectStmt) OrderBy(s string) *SelectStmt {
-	stmt.orderby = newOrderBy(s)
+func (stmt *SelectStmt) OrderBy(orderby ...interface{}) *SelectStmt {
+	stmt.orderby = newOrderBy(orderby...)
 	return stmt
 }
 
@@ -82,7 +82,7 @@ func (stmt *SelectStmt) Build() (string, []interface{}) {
 func newColumns(c ...interface{}) *columns {
 	exprs := make([]Expression, 0, len(c))
 	for _, col := range c {
-		exprs = append(exprs, newExpression((col)))
+		exprs = append(exprs, newExpression(col))
 	}
 	return &columns{exprs: exprs}
 }
@@ -98,12 +98,24 @@ func (c columns) build(b *builder) {
 	}
 }
 
-func newFrom(table string) *from { return &from{table: table} }
+func newFrom(f ...interface{}) *from {
+	exprs := make([]Expression, 0, len(f))
+	for _, fr := range f {
+		exprs = append(exprs, newExpression(fr))
+	}
+	return &from{exprs: exprs}
+}
 
-type from struct{ table string }
+type from struct{ exprs []Expression }
 
 func (from from) build(b *builder) {
-	b.write("FROM " + from.table)
+	b.write("FROM ")
+	for i := range from.exprs {
+		if i > 0 {
+			b.write(", ")
+		}
+		from.exprs[i].build(b)
+	}
 }
 
 func newWhere(i interface{}) *where { return &where{expr: newExpression(i)} }
@@ -115,12 +127,24 @@ func (where where) build(b *builder) {
 	where.expr.build(b)
 }
 
-func newOrderBy(s string) *orderby { return &orderby{s: s} }
+func newOrderBy(o ...interface{}) *orderby {
+	exprs := make([]Expression, 0, len(o))
+	for _, or := range o {
+		exprs = append(exprs, newExpression(or))
+	}
+	return &orderby{exprs: exprs}
+}
 
-type orderby struct{ s string }
+type orderby struct{ exprs []Expression }
 
 func (orderby orderby) build(b *builder) {
-	b.write("ORDER BY " + orderby.s)
+	b.write("ORDER BY ")
+	for i := range orderby.exprs {
+		if i > 0 {
+			b.write(", ")
+		}
+		orderby.exprs[i].build(b)
+	}
 }
 
 func newLimit(i int64) *limit { return &limit{i: i} }
@@ -141,27 +165,17 @@ func (offset offset) build(b *builder) {
 	b.bind(offset.i)
 }
 
-// Column returns a new SelectColumn.
-func Column(i interface{}) *SelectColumn {
-	return &SelectColumn{expr: newExpression(i)}
+// As adds an alias.
+func As(i interface{}, as string) Expression {
+	return &alias{expr: newExpression(i), as: as}
 }
 
-// SelectColumn is a select column.
-type SelectColumn struct {
-	expr Expression
-}
-
-// As adds a column alias.
-func (s *SelectColumn) As(as string) Expression {
-	return &column{expr: s.expr, as: as}
-}
-
-type column struct {
+type alias struct {
 	expr Expression
 	as   string
 }
 
-func (c *column) build(b *builder) {
-	c.expr.build(b)
-	b.write(" AS " + c.as)
+func (a *alias) build(b *builder) {
+	a.expr.build(b)
+	b.write(" AS " + a.as)
 }

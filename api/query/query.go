@@ -12,6 +12,7 @@ func ParseURLs(v url.Values) (*URLs, error) {
 		query.IntParam("limit"),
 		query.IntParam("cursor"),
 		query.StringsParam("status", []string{"pending", "processing", "failure", "success"}),
+		query.StringParam("q"),
 	)
 	if err != nil {
 		return nil, err
@@ -27,6 +28,9 @@ func ParseURLs(v url.Values) (*URLs, error) {
 	}
 	if status, ok := q["status"]; ok {
 		u.Status = status.([]string)
+	}
+	if q, ok := q["q"]; ok {
+		u.Q = q.(string)
 	}
 	return &u, nil
 }
@@ -49,6 +53,7 @@ type URLs struct {
 	Cursor int64
 	Limit  int64
 	Status []string
+	Q      string
 }
 
 // Logs is the query for logs.

@@ -114,7 +114,13 @@ func (*Store) ListURLs(ctx context.Context, db storesql.QueryStructSlicer, q *qu
 func buildListURLs(q *query.URLs) (string, []interface{}) {
 	stmt := querybuilder.Select(
 		"id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "oembed",
-	).From("urls")
+	)
+	if q.Q != "" {
+		tsquery := querybuilder.Call("websearch_to_tsquery", querybuilder.Bind(q.Q))
+		stmt = stmt.From("urls", querybuilder.As(tsquery, "tsquery"))
+	} else {
+		stmt = stmt.From("urls")
+	}
 
 	expr := querybuilder.Expr("deleted_at").IsNull()
 	if q.Status != nil {
@@ -127,8 +133,20 @@ func buildListURLs(q *query.URLs) (string, []interface{}) {
 			querybuilder.Expr("id").LessThan(q.Cursor),
 		)
 	}
+	if q.Q != "" {
+		expr = querybuilder.Expr(expr).And(
+			querybuilder.Expr("tsv").Op("@@", "tsquery"),
+		)
+	}
+	stmt = stmt.Where(expr)
 
-	return stmt.Where(expr).OrderBy("id desc").Limit(q.Limit).Build()
+	if q.Q != "" {
+		stmt = stmt.OrderBy("ts_rank(tsv, tsquery) desc", "id desc")
+	} else {
+		stmt = stmt.OrderBy("id desc")
+	}
+
+	return stmt.Limit(q.Limit).Build()
 }
 
 // ListLogs list logs.

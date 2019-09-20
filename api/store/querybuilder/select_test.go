@@ -20,7 +20,7 @@ func TestSelect(t *testing.T) {
 		args:  []interface{}{1},
 	}, {
 		stmt: Select(
-			Column(Call("unnest", Index("logs", Bind(1)))).As("log"),
+			As(Call("unnest", Index("logs", Bind(1))), "log"),
 		),
 		query: "SELECT unnest(logs[$1:]) AS log",
 		args:  []interface{}{1},
@@ -39,6 +39,17 @@ func TestSelect(t *testing.T) {
 			)),
 		query: "SELECT col FROM table WHERE deleted_at IS NULL AND id < $1 AND status IN ($2, $3)",
 		args:  []interface{}{1, "success", "failed"},
+	}, {
+		stmt:  Select("foo").Where(Expr("col").Op("op", "value")),
+		query: "SELECT foo WHERE col op value",
+	}, {
+		stmt:  Select("foo").OrderBy("first", Call("func", Bind(1))),
+		query: "SELECT foo ORDER BY first, func($1)",
+		args:  []interface{}{1},
+	}, {
+		stmt:  Select("foo").From("table", As(Call("func", Bind(1)), "alias")),
+		query: "SELECT foo FROM table, func($1) AS alias",
+		args:  []interface{}{1},
 	}} {
 		query, args := tt.stmt.Build()
 		assertf(t, query == tt.query, "expected %q, got %q", tt.query, query)

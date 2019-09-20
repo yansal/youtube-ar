@@ -11,7 +11,8 @@ create table urls (
     error text,
     file text,
     retries int,
-    oembed jsonb
+    oembed jsonb,
+    tsv tsvector
 );
 
 create function urls_update() returns trigger as $urls_update$
@@ -23,6 +24,17 @@ $urls_update$ language plpgsql;
 
 create trigger urls_update before update on urls
     for each row execute procedure urls_update();
+
+create function urls_update_tsv() returns trigger as $urls_update_tsv$
+    begin
+        NEW.tsv := to_tsvector(coalesce(new.oembed->>'title', '')) ||
+            to_tsvector(coalesce(new.oembed->>'author_name', ''));
+        return NEW;
+    end
+$urls_update_tsv$ LANGUAGE plpgsql;
+
+create trigger urls_update_tsv before insert or update on urls
+    for each row execute procedure urls_update_tsv();
 
 create table youtube_videos (
     id serial primary key,

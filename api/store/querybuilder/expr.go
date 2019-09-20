@@ -86,6 +86,11 @@ func (i *Infix) And(right Expression) Expression {
 	return &infixExpr{left: i.left, op: "AND", right: right}
 }
 
+// Op returns a new Expression with a custom operator.
+func (i *Infix) Op(op string, right interface{}) Expression {
+	return &infixExpr{left: i.left, op: op, right: newExpression(right)}
+}
+
 type infixExpr struct {
 	left  Expression
 	op    string
