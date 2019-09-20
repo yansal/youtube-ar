@@ -11,7 +11,8 @@ class VideoList extends React.Component {
 
     this.state = {
       list: [],
-      filter: 'all'
+      search: '',
+      status: 'all'
     }
   }
 
@@ -33,13 +34,18 @@ class VideoList extends React.Component {
   }
 
   handleFilterChange = event => {
-    this.setState({ filter: event.target.value }, this.refresh)
+    this.setState({ status: event.target.value }, this.refresh)
+  }
+
+  handleSearchChange = event => {
+    this.setState({ search: event.target.value }, this.refresh)
   }
 
   handleNext = event => {
-    const { filter, nextCursor } = this.state
+    const { search, status, nextCursor } = this.state
     const baseURL = `${API_URL}/urls?cursor=${nextCursor}&limit=12`
-    let url = filter === 'all' ? baseURL : `${baseURL}&status=${filter}`
+    let url = status === 'all' ? baseURL : `${baseURL}&status=${status}`
+    url = search === '' ? baseURL : `${baseURL}&q=${search}`
 
     fetch(url).then(response => {
       response.json().then(resource => {
@@ -91,9 +97,10 @@ class VideoList extends React.Component {
   }
 
   refresh = () => {
-    const { filter } = this.state
+    const { search, status } = this.state
     const baseURL = `${API_URL}/urls?limit=12`
-    let url = filter === 'all' ? baseURL : `${baseURL}&status=${filter}`
+    let url = status === 'all' ? baseURL : `${baseURL}&status=${status}`
+    url = search === '' ? baseURL : `${baseURL}&q=${search}`
     fetch(url).then(response => {
       response.json().then(resource => {
         this.setState({ list: resource.urls, nextCursor: resource.next_cursor })
@@ -111,15 +118,16 @@ class VideoList extends React.Component {
     return (
       <div>
         <form onSubmit={this.handleSubmit}>
-          <input type="text" ref={this.videoInput} />
+          <input type="text" ref={this.videoInput} placeholder="Paste a URL"/>
         </form>
-        <select value={this.state.filter} onChange={this.handleFilterChange}>
+        <select value={this.state.status} onChange={this.handleFilterChange}>
           <option value="all">All</option>
           <option value="success">Success</option>
           <option value="failure">Failure</option>
           <option value="processing">Processing</option>
           <option value="pending">Pending</option>
         </select>
+        <input type="text" onChange={this.handleSearchChange} placeholder="Search"/>
         {list ? <ul className="yar-video-list">{listNodes}</ul> : <div>Nothing to show!</div>}
         {nextCursor > 0 && <button onClick={this.handleNext}>Next</button>}
       </div>
