@@ -34,20 +34,15 @@ class VideoList extends React.Component {
   }
 
   handleStatusChange = event => {
-    this.setState({ status: event.target.value }, this.refresh)
+    this.setState({ status: event.target.value, nextCursor: 0 }, this.refresh)
   }
 
   handleSearchChange = event => {
-    this.setState({ search: event.target.value }, this.refresh)
+    this.setState({ search: event.target.value, nextCursor: 0 }, this.refresh)
   }
 
   handleNext = event => {
-    const { search, status, nextCursor } = this.state
-    const baseURL = `${API_URL}/urls?cursor=${nextCursor}&limit=12`
-    let url = status === 'all' ? baseURL : `${baseURL}&status=${status}`
-    url = search === '' ? url : `${url}&q=${search}`
-
-    fetch(url).then(response => {
+    fetch(this.buildURL()).then(response => {
       response.json().then(resource => {
         if (resource.urls === null) {
           return
@@ -97,15 +92,26 @@ class VideoList extends React.Component {
   }
 
   refresh = () => {
-    const { search, status } = this.state
-    const baseURL = `${API_URL}/urls?limit=12`
-    let url = status === 'all' ? baseURL : `${baseURL}&status=${status}`
-    url = search === '' ? url : `${url}&q=${search}`
-    fetch(url).then(response => {
+    fetch(this.buildURL()).then(response => {
       response.json().then(resource => {
         this.setState({ list: resource.urls, nextCursor: resource.next_cursor })
       })
     })
+  }
+
+  buildURL = () => {
+    const { search, status, nextCursor } = this.state
+    var params = new URLSearchParams()
+    if (search && search !== '') {
+      params.set('q', search)
+    }
+    if (status && status !== 'all') {
+      params.set('status', status)
+    }
+    if (nextCursor && nextCursor !== 0) {
+      params.set('cursor', nextCursor)
+    }
+    return `${API_URL}/urls?${params.toString()}`
   }
 
   render() {
@@ -118,7 +124,7 @@ class VideoList extends React.Component {
     return (
       <div>
         <form onSubmit={this.handleSubmit}>
-          <input type="text" ref={this.videoInput} placeholder="Paste a URL"/>
+          <input type="text" ref={this.videoInput} placeholder="Paste a URL" />
         </form>
         <select value={this.state.status} onChange={this.handleStatusChange}>
           <option value="all">All</option>
@@ -127,7 +133,7 @@ class VideoList extends React.Component {
           <option value="processing">Processing</option>
           <option value="pending">Pending</option>
         </select>
-        <input type="text" onChange={this.handleSearchChange} placeholder="Search"/>
+        <input type="text" onChange={this.handleSearchChange} placeholder="Search" />
         {list ? <ul className="yar-video-list">{listNodes}</ul> : <div>Nothing to show!</div>}
         {nextCursor > 0 && <button onClick={this.handleNext}>Next</button>}
       </div>
