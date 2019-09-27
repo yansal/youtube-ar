@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -21,11 +21,7 @@ import (
 	"github.com/yansal/youtube-ar/api/youtubedl"
 )
 
-// Cmd is the cmd functional type.
-type Cmd func(ctx context.Context, args []string) error
-
-// CreateURL is the create-url cmd.
-func CreateURL(ctx context.Context, args []string) error {
+func createURL(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("create-url", flag.ExitOnError)
 	var url string
 	fs.StringVar(&url, "url", "", "url to create")
@@ -59,8 +55,7 @@ func CreateURL(ctx context.Context, args []string) error {
 	return nil
 }
 
-// CreateURLsFromPlaylist is the create-urls-from-playlist cmd.
-func CreateURLsFromPlaylist(ctx context.Context, args []string) error {
+func createURLsFromPlaylist(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("create-urls-from-playlist", flag.ExitOnError)
 	var playlist string
 	fs.StringVar(&playlist, "playlist", "", "youtube playlist")
@@ -90,8 +85,7 @@ func CreateURLsFromPlaylist(ctx context.Context, args []string) error {
 	return playlistLoader.CreateURLsFromYoutube(ctx, db, playlist)
 }
 
-// GetOembed is the get-oembed cmd.
-func GetOembed(ctx context.Context, args []string) error {
+func getOembed(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("get-oembed", flag.ExitOnError)
 	var url string
 	fs.StringVar(&url, "url", "", "url")
@@ -114,8 +108,7 @@ func GetOembed(ctx context.Context, args []string) error {
 	return nil
 }
 
-// DownloadURL is the download-url cmd.
-func DownloadURL(ctx context.Context, args []string) error {
+func downloadURL(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("download-url", flag.ExitOnError)
 	var url string
 	fs.StringVar(&url, "url", "", "url to download")
@@ -141,8 +134,7 @@ func DownloadURL(ctx context.Context, args []string) error {
 	return nil
 }
 
-// ListLogs is the list-logs cmd.
-func ListLogs(ctx context.Context, args []string) error {
+func listLogs(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("list-logs", flag.ExitOnError)
 	var urlID, cursor, limit int64
 	fs.Int64Var(&urlID, "url-id", 0, "url-id")
@@ -172,8 +164,7 @@ func ListLogs(ctx context.Context, args []string) error {
 	return nil
 }
 
-// ListURLs is the list-urls cmd.
-func ListURLs(ctx context.Context, args []string) error {
+func listURLs(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("list-urls", flag.ExitOnError)
 	var cursor, limit int64
 	fs.Int64Var(&cursor, "cursor", 0, "cursor")
@@ -200,8 +191,7 @@ func ListURLs(ctx context.Context, args []string) error {
 	return nil
 }
 
-// RetryNextDownloadURL is the retry-next-download-url cmd.
-func RetryNextDownloadURL(ctx context.Context, args []string) error {
+func retryNextDownloadURL(ctx context.Context, args []string) error {
 	log := log.New()
 	redis, err := newRedis(log)
 	if err != nil {
@@ -217,4 +207,30 @@ func RetryNextDownloadURL(ctx context.Context, args []string) error {
 
 	retrier := service.NewRetrier(broker, manager, store)
 	return retrier.RetryNextDownloadURL(ctx, db)
+}
+
+func shouldRetry(ctx context.Context, args []string) error {
+
+	fs := flag.NewFlagSet("should-retry", flag.ExitOnError)
+	var urlID int64
+	fs.Int64Var(&urlID, "url-id", 0, "url")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if urlID == 0 {
+		return errors.New("url-id is required")
+	}
+	store := store.New()
+	log := log.New()
+	db, err := newSQLDB(log)
+	if err != nil {
+		return err
+	}
+	url, err := store.GetURL(ctx, db, urlID)
+	if err != nil {
+		return err
+	}
+	fmt.Println(url.URL)
+	fmt.Println(url.ShouldRetry())
+	return nil
 }

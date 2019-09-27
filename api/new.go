@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"database/sql"
@@ -12,7 +12,6 @@ import (
 	storesql "github.com/yansal/youtube-ar/api/store/sql"
 )
 
-// newSQLDB returns a new sql DB.
 func newSQLDB(log log.Logger) (*storesql.DB, error) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {

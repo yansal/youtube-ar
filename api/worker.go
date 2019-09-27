@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -19,8 +19,7 @@ import (
 	"github.com/yansal/youtube-ar/api/youtubedl"
 )
 
-// Worker is the worker cmd.
-func Worker(ctx context.Context, args []string) error {
+func runWorker(ctx context.Context, args []string) error {
 	log := log.New()
 	redis, err := newRedis(log)
 	if err != nil {

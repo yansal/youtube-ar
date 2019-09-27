@@ -10,21 +10,21 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/yansal/youtube-ar/api/cmd"
 	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	cmds := map[string]cmd.Cmd{
-		"create-url":                cmd.CreateURL,
-		"create-urls-from-playlist": cmd.CreateURLsFromPlaylist,
-		"download-url":              cmd.DownloadURL,
-		"get-oembed":                cmd.GetOembed,
-		"list-logs":                 cmd.ListLogs,
-		"list-urls":                 cmd.ListURLs,
-		"retry-next-download-url":   cmd.RetryNextDownloadURL,
-		"server":                    cmd.Server,
-		"worker":                    cmd.Worker,
+	cmds := map[string]cmd{
+		"create-url":                createURL,
+		"create-urls-from-playlist": createURLsFromPlaylist,
+		"download-url":              downloadURL,
+		"get-oembed":                getOembed,
+		"list-logs":                 listLogs,
+		"list-urls":                 listURLs,
+		"retry-next-download-url":   retryNextDownloadURL,
+		"should-retry":              shouldRetry,
+		"server":                    runServer,
+		"worker":                    runWorker,
 	}
 
 	var names []string
@@ -33,7 +33,7 @@ func main() {
 	}
 	sort.Strings(names)
 
-	cmd := cmd.Server
+	cmd := runServer
 	args := os.Args[1:]
 	if len(os.Args) > 1 {
 		var ok bool
@@ -69,3 +69,5 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+type cmd func(ctx context.Context, args []string) error
