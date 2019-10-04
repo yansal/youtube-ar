@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"os"
 
@@ -24,7 +25,11 @@ func newSQLDB(log log.Logger) (*storesql.DB, error) {
 
 	connector := logsql.Wrap(pqconnector, log)
 
-	return storesql.NewDB(sql.OpenDB(connector)), nil
+	db := storesql.NewDB(sql.OpenDB(connector))
+	if err := db.PingContext(context.Background()); err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
 func newRedis(log log.Logger) (*redis.Client, error) {
@@ -32,5 +37,12 @@ func newRedis(log log.Logger) (*redis.Client, error) {
 	if url == "" {
 		url = `redis://`
 	}
-	return brokerredis.New(url, log)
+	client, err := brokerredis.New(url, log)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.Ping().Err(); err != nil {
+		return nil, err
+	}
+	return client, nil
 }

@@ -44,6 +44,11 @@ type DB struct {
 	db *sql.DB
 }
 
+// PingContext pings.
+func (db *DB) PingContext(ctx context.Context) error {
+	return db.db.PingContext(ctx)
+}
+
 // ExecContext is the query context method.
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	return db.db.ExecContext(ctx, query, args...)
