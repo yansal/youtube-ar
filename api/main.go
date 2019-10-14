@@ -4,12 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"sort"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/yansal/youtube-ar/api/log"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -64,6 +69,15 @@ func main() {
 		return sentinel
 	})
 
+	if pprofPort := os.Getenv("PPROF_PORT"); pprofPort != "" {
+		g.Go(func() error {
+			if err := runPprofServer(ctx, pprofPort); err != nil {
+				return err
+			}
+			return sentinel
+		})
+	}
+
 	if err := g.Wait(); err != sentinel && err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -71,3 +85,36 @@ func main() {
 }
 
 type cmd func(ctx context.Context, args []string) error
+
+func runPprofServer(ctx context.Context, port string) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	server := http.Server{Handler: mux}
+
+	l, err := net.Listen("tcp", "localhost:"+port)
+	if err != nil {
+		return err
+	}
+
+	cerr := make(chan error)
+	go func() {
+		cerr <- server.Serve(l)
+	}()
+
+	select {
+	case <-ctx.Done():
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			log.New().Log(ctx, err.Error())
+		}
+		return nil
+	case err := <-cerr:
+		return err
+	}
+}
