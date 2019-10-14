@@ -4,10 +4,12 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"regexp"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yansal/youtube-ar/api/broker"
 	"github.com/yansal/youtube-ar/api/log"
 	"github.com/yansal/youtube-ar/api/manager"
@@ -76,6 +78,68 @@ func runServer(ctx context.Context, args []string) error {
 		defer cancel()
 		if err := server.Shutdown(ctx); err != nil {
 			log.Log(ctx, err.Error())
+		}
+		return nil
+	case err := <-cerr:
+		return err
+	}
+}
+
+func runPprofServer(ctx context.Context, port string) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	server := http.Server{Handler: mux}
+
+	l, err := net.Listen("tcp", "localhost:"+port)
+	if err != nil {
+		return err
+	}
+
+	cerr := make(chan error)
+	go func() {
+		cerr <- server.Serve(l)
+	}()
+
+	select {
+	case <-ctx.Done():
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			log.New().Log(ctx, err.Error())
+		}
+		return nil
+	case err := <-cerr:
+		return err
+	}
+}
+
+func runPrometheusServer(ctx context.Context, port string) error {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+
+	server := http.Server{Handler: mux}
+
+	l, err := net.Listen("tcp", "localhost:"+port)
+	if err != nil {
+		return err
+	}
+
+	cerr := make(chan error)
+	go func() {
+		cerr <- server.Serve(l)
+	}()
+
+	select {
+	case <-ctx.Done():
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			log.New().Log(ctx, err.Error())
 		}
 		return nil
 	case err := <-cerr:
