@@ -75,6 +75,10 @@ github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/yansal/query v0.0.0-20190811123741-1e5b8dc4d6d0 h1:/yg5MthoJcJy1T1XFu+nCLwAqjzhK55bFRrI9yVEmoE=
 github.com/yansal/query v0.0.0-20190811123741-1e5b8dc4d6d0/go.mod h1:0iSs/0NL/h6tEDJSChZUCUPKTOq7sd3HiMtHsFhxR1I=
+github.com/yansal/sql v0.0.0-20191121092618-b69a3c337753 h1:Xu/yd6gLDYS/3T2Bayv81N7B7N2zRlM5m/u0q2i5HRA=
+github.com/yansal/sql v0.0.0-20191121092618-b69a3c337753/go.mod h1:g/jJ3YeTODbQj3rbuxzE4z5tzn3vcQyv577H+aDw7wA=
+github.com/yansal/sql v0.0.0-20191122171411-ec255dfe6560 h1:2Tsds6i+ec54KyFJHq9jwIjjvTaRbOuMxWQtSng3e4M=
+github.com/yansal/sql v0.0.0-20191122171411-ec255dfe6560/go.mod h1:g/jJ3YeTODbQj3rbuxzE4z5tzn3vcQyv577H+aDw7wA=
 github.com/yansal/sqldriver v0.0.0-20190804194223-fece0ffba949 h1:WvqBarktR5eh2+7ultPoYAY8DvnTtammTt9tJQTgWcU=
 github.com/yansal/sqldriver v0.0.0-20190804194223-fece0ffba949/go.mod h1:ddlaulyfmEV6F813fF6qWzHAqKbOGmVD9UBSXvC93Ks=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=

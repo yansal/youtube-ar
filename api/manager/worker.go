@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/yansal/sql/scan"
 	"github.com/yansal/youtube-ar/api/event"
 	"github.com/yansal/youtube-ar/api/model"
-	storesql "github.com/yansal/youtube-ar/api/store/sql"
 )
 
 // Worker is the manager used for worker features.
@@ -20,7 +20,7 @@ type Worker struct {
 
 // Downloader is the downloader interface required by Worker.
 type Downloader interface {
-	DownloadURL(context.Context, storesql.Execer, *model.URL) (string, error)
+	DownloadURL(context.Context, scan.Queryer, *model.URL) (string, error)
 }
 
 // OEmbed is the oembed interface required by Worker.
@@ -30,9 +30,9 @@ type OEmbed interface {
 
 // StoreWorker is the store interface required by Worker.
 type StoreWorker interface {
-	LockURL(context.Context, storesql.Execer, *model.URL) error
-	UnlockURL(context.Context, storesql.Execer, *model.URL) error
-	SetOEmbed(context.Context, storesql.Execer, *model.URL) error
+	LockURL(context.Context, scan.Queryer, *model.URL) error
+	UnlockURL(context.Context, scan.Queryer, *model.URL) error
+	SetOEmbed(context.Context, scan.Queryer, *model.URL) error
 }
 
 // NewWorker returns a new Worker.
@@ -41,7 +41,7 @@ func NewWorker(downloader Downloader, oembed OEmbed, store StoreWorker) *Worker 
 }
 
 // DownloadURL downloads e.
-func (m *Worker) DownloadURL(ctx context.Context, db storesql.Execer, e event.URL) error {
+func (m *Worker) DownloadURL(ctx context.Context, db scan.Queryer, e event.URL) error {
 	url := &model.URL{ID: e.ID, URL: e.URL, Status: "processing"}
 	if err := m.store.LockURL(ctx, db, url); err != nil {
 		return err
@@ -83,7 +83,7 @@ func (m *Worker) DownloadURL(ctx context.Context, db storesql.Execer, e event.UR
 }
 
 // GetOEmbed gets oembed.
-func (m *Worker) GetOEmbed(ctx context.Context, db storesql.Execer, e event.URL) error {
+func (m *Worker) GetOEmbed(ctx context.Context, db scan.Queryer, e event.URL) error {
 	data, err := m.oembed.Get(ctx, e.URL)
 	if err != nil {
 		return err

@@ -10,10 +10,9 @@ import (
 	brokerredis "github.com/yansal/youtube-ar/api/broker/redis"
 	"github.com/yansal/youtube-ar/api/log"
 	logsql "github.com/yansal/youtube-ar/api/log/sql"
-	storesql "github.com/yansal/youtube-ar/api/store/sql"
 )
 
-func newSQLDB(log log.Logger) (*storesql.DB, error) {
+func newSQLDB(log log.Logger) (*sql.DB, error) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = `sslmode=disable`
@@ -25,7 +24,7 @@ func newSQLDB(log log.Logger) (*storesql.DB, error) {
 
 	connector := logsql.Wrap(pqconnector, log)
 
-	db := storesql.NewDB(sql.OpenDB(connector))
+	db := sql.OpenDB(connector)
 	if err := db.PingContext(context.Background()); err != nil {
 		return nil, err
 	}

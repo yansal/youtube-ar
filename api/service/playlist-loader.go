@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/yansal/sql/scan"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/payload"
-	storesql "github.com/yansal/youtube-ar/api/store/sql"
 	"github.com/yansal/youtube-ar/api/youtube"
 )
 
@@ -19,13 +19,13 @@ type PlaylistLoader struct {
 
 // PlaylistLoaderManager is the manager interface required by PlaylistLoader.
 type PlaylistLoaderManager interface {
-	CreateURL(context.Context, storesql.QueryStructer, payload.URL) (*model.URL, error)
+	CreateURL(context.Context, scan.Queryer, payload.URL) (*model.URL, error)
 }
 
 // PlaylistLoaderStore is the store interface required by PlaylistLoader.
 type PlaylistLoaderStore interface {
-	GetYoutubeVideoByYoutubeID(context.Context, storesql.QueryStructer, string) (*model.YoutubeVideo, error)
-	CreateYoutubeVideo(context.Context, storesql.QueryStructer, *model.YoutubeVideo) error
+	GetYoutubeVideoByYoutubeID(context.Context, scan.Queryer, string) (*model.YoutubeVideo, error)
+	CreateYoutubeVideo(context.Context, scan.Queryer, *model.YoutubeVideo) error
 }
 
 // PlaylistLoaderYoutubeClient is the youtube client interface required by PlaylistLoader.
@@ -38,8 +38,13 @@ func NewPlaylistLoader(manager PlaylistLoaderManager, store PlaylistLoaderStore,
 	return &PlaylistLoader{manager: manager, store: store, youtubeClient: youtubeClient}
 }
 
+type Queryer interface {
+	scan.Queryer
+	BeginTx(context.Context, *sql.TxOptions) (*sql.Tx, error)
+}
+
 // CreateURLsFromYoutube creates urls from youtube playlistID.
-func (s *PlaylistLoader) CreateURLsFromYoutube(ctx context.Context, db storesql.Querier, playlistID string) error {
+func (s *PlaylistLoader) CreateURLsFromYoutube(ctx context.Context, db Queryer, playlistID string) error {
 	videos, err := s.youtubeClient.GetVideosFromPlaylist(ctx, playlistID)
 	if err != nil {
 		return err
@@ -56,7 +61,7 @@ func (s *PlaylistLoader) CreateURLsFromYoutube(ctx context.Context, db storesql.
 	return nil
 }
 
-func (s *PlaylistLoader) getOrCreateYoutubeVideo(ctx context.Context, db storesql.Querier, youtubeID string) (*model.YoutubeVideo, error) {
+func (s *PlaylistLoader) getOrCreateYoutubeVideo(ctx context.Context, db Queryer, youtubeID string) (*model.YoutubeVideo, error) {
 	v, err := s.store.GetYoutubeVideoByYoutubeID(ctx, db, youtubeID)
 	if err == nil {
 		return v, nil
@@ -64,7 +69,7 @@ func (s *PlaylistLoader) getOrCreateYoutubeVideo(ctx context.Context, db storesq
 		return nil, err
 	}
 
-	tx, err := db.Begin(ctx)
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
