@@ -35,7 +35,6 @@ github.com/json-iterator/go v1.1.7/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/u
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515/go.mod h1:+0opPa2QZZtGFBFZlji/RkVcI2GknAs/DXo4wKdlNEc=
-github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.2.0 h1:LXpIM/LZ5xGFhOpXAQUIMM1HdyqzVYM13zNdjCEEcA0=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
@@ -75,12 +74,10 @@ github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/yansal/query v0.0.0-20190811123741-1e5b8dc4d6d0 h1:/yg5MthoJcJy1T1XFu+nCLwAqjzhK55bFRrI9yVEmoE=
 github.com/yansal/query v0.0.0-20190811123741-1e5b8dc4d6d0/go.mod h1:0iSs/0NL/h6tEDJSChZUCUPKTOq7sd3HiMtHsFhxR1I=
-github.com/yansal/sql v0.0.0-20191121092618-b69a3c337753 h1:Xu/yd6gLDYS/3T2Bayv81N7B7N2zRlM5m/u0q2i5HRA=
-github.com/yansal/sql v0.0.0-20191121092618-b69a3c337753/go.mod h1:g/jJ3YeTODbQj3rbuxzE4z5tzn3vcQyv577H+aDw7wA=
 github.com/yansal/sql v0.0.0-20191122171411-ec255dfe6560 h1:2Tsds6i+ec54KyFJHq9jwIjjvTaRbOuMxWQtSng3e4M=
 github.com/yansal/sql v0.0.0-20191122171411-ec255dfe6560/go.mod h1:g/jJ3YeTODbQj3rbuxzE4z5tzn3vcQyv577H+aDw7wA=
-github.com/yansal/sqldriver v0.0.0-20190804194223-fece0ffba949 h1:WvqBarktR5eh2+7ultPoYAY8DvnTtammTt9tJQTgWcU=
-github.com/yansal/sqldriver v0.0.0-20190804194223-fece0ffba949/go.mod h1:ddlaulyfmEV6F813fF6qWzHAqKbOGmVD9UBSXvC93Ks=
+github.com/yansal/sql v0.0.0-20191123214150-8c4567751cd3 h1:zGGCExUpFVlIuLsT+QGsCF6mrXjI7aNO/6GJOLwoEM8=
+github.com/yansal/sql v0.0.0-20191123214150-8c4567751cd3/go.mod h1:g/jJ3YeTODbQj3rbuxzE4z5tzn3vcQyv577H+aDw7wA=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd h1:nTDtHvHSdCn1m6ITfMRqtOd/9+7a3s8RBNOZ3eYZzJA=
