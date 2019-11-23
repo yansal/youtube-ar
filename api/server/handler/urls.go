@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/yansal/sql/scan"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/payload"
 	"github.com/yansal/youtube-ar/api/query"
 	"github.com/yansal/youtube-ar/api/resource"
 	"github.com/yansal/youtube-ar/api/server"
+	"github.com/yansal/youtube-ar/api/store"
 )
 
 // URLSerializer is the serializer interface required by url handlers.
@@ -23,17 +23,17 @@ type URLSerializer interface {
 
 // ListURLsManager is the manager interface required by ListURLs.
 type ListURLsManager interface {
-	ListURLs(context.Context, scan.Queryer, *query.URLs) ([]model.URL, error)
+	ListURLs(context.Context, store.Queryer, *query.URLs) ([]model.URL, error)
 }
 
 // ListURLs is the GET /urls handler.
-func ListURLs(m ListURLsManager, db scan.Queryer, s URLSerializer) http.HandlerFunc {
+func ListURLs(m ListURLsManager, db store.Queryer, s URLSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serveHTTP(w, r, listURLs(m, db, s))
 	}
 }
 
-func listURLs(m ListURLsManager, db scan.Queryer, s URLSerializer) handlerFunc {
+func listURLs(m ListURLsManager, db store.Queryer, s URLSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		q, err := query.ParseURLs(r.URL.Query())
 		if err != nil {
@@ -59,17 +59,17 @@ func listURLs(m ListURLsManager, db scan.Queryer, s URLSerializer) handlerFunc {
 
 // CreateURLManager is the manager interface required by CreateURL.
 type CreateURLManager interface {
-	CreateURL(context.Context, scan.Queryer, payload.URL) (*model.URL, error)
+	CreateURL(context.Context, store.Queryer, payload.URL) (*model.URL, error)
 }
 
 // CreateURL is the POST /urls handler.
-func CreateURL(m CreateURLManager, db scan.Queryer, s URLSerializer) http.HandlerFunc {
+func CreateURL(m CreateURLManager, db store.Queryer, s URLSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serveHTTP(w, r, createURL(m, db, s))
 	}
 }
 
-func createURL(m CreateURLManager, db scan.Queryer, s URLSerializer) handlerFunc {
+func createURL(m CreateURLManager, db store.Queryer, s URLSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		var payload payload.URL
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -101,17 +101,17 @@ func createURL(m CreateURLManager, db scan.Queryer, s URLSerializer) handlerFunc
 
 // DetailURLManager is the manager interface required by DetailURL.
 type DetailURLManager interface {
-	GetURL(context.Context, scan.Queryer, int64) (*model.URL, error)
+	GetURL(context.Context, store.Queryer, int64) (*model.URL, error)
 }
 
 // DetailURL is the GET /urls handler.
-func DetailURL(m DetailURLManager, db scan.Queryer, s URLSerializer) http.HandlerFunc {
+func DetailURL(m DetailURLManager, db store.Queryer, s URLSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serveHTTP(w, r, detailURL(m, db, s))
 	}
 }
 
-func detailURL(m DetailURLManager, db scan.Queryer, s URLSerializer) handlerFunc {
+func detailURL(m DetailURLManager, db store.Queryer, s URLSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		ctx := r.Context()
 		match := server.ContextMatch(ctx)
@@ -137,17 +137,17 @@ func detailURL(m DetailURLManager, db scan.Queryer, s URLSerializer) handlerFunc
 
 // DeleteURLManager is the manager interface required by DeleteURL.
 type DeleteURLManager interface {
-	DeleteURL(context.Context, scan.Queryer, int64) error
+	DeleteURL(context.Context, store.Queryer, int64) error
 }
 
 // DeleteURL is the GET /urls handler.
-func DeleteURL(m DeleteURLManager, db scan.Queryer) http.HandlerFunc {
+func DeleteURL(m DeleteURLManager, db store.Queryer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serveHTTP(w, r, deleteURL(m, db))
 	}
 }
 
-func deleteURL(m DeleteURLManager, db scan.Queryer) handlerFunc {
+func deleteURL(m DeleteURLManager, db store.Queryer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		ctx := r.Context()
 		match := server.ContextMatch(ctx)
@@ -165,17 +165,17 @@ func deleteURL(m DeleteURLManager, db scan.Queryer) handlerFunc {
 
 // Retrier is the interface required by RetryDownloadURL.
 type Retrier interface {
-	RetryDownloadURL(context.Context, scan.Queryer, int64) (*model.URL, error)
+	RetryDownloadURL(context.Context, store.Queryer, int64) (*model.URL, error)
 }
 
 // RetryDownloadURL is the POST /urls/:id/retry handler.
-func RetryDownloadURL(retrier Retrier, db scan.Queryer, s URLSerializer) http.HandlerFunc {
+func RetryDownloadURL(retrier Retrier, db store.Queryer, s URLSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serveHTTP(w, r, retryURL(retrier, db, s))
 	}
 }
 
-func retryURL(retrier Retrier, db scan.Queryer, s URLSerializer) handlerFunc {
+func retryURL(retrier Retrier, db store.Queryer, s URLSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		ctx := r.Context()
 		match := server.ContextMatch(ctx)

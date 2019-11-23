@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/yansal/sql/scan"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/payload"
+	"github.com/yansal/youtube-ar/api/store"
 	"github.com/yansal/youtube-ar/api/youtube"
 )
 
@@ -19,13 +19,13 @@ type PlaylistLoader struct {
 
 // PlaylistLoaderManager is the manager interface required by PlaylistLoader.
 type PlaylistLoaderManager interface {
-	CreateURL(context.Context, scan.Queryer, payload.URL) (*model.URL, error)
+	CreateURL(context.Context, store.Queryer, payload.URL) (*model.URL, error)
 }
 
 // PlaylistLoaderStore is the store interface required by PlaylistLoader.
 type PlaylistLoaderStore interface {
-	GetYoutubeVideoByYoutubeID(context.Context, scan.Queryer, string) (*model.YoutubeVideo, error)
-	CreateYoutubeVideo(context.Context, scan.Queryer, *model.YoutubeVideo) error
+	GetYoutubeVideoByYoutubeID(context.Context, store.Queryer, string) (*model.YoutubeVideo, error)
+	CreateYoutubeVideo(context.Context, store.Queryer, *model.YoutubeVideo) error
 }
 
 // PlaylistLoaderYoutubeClient is the youtube client interface required by PlaylistLoader.
@@ -39,7 +39,7 @@ func NewPlaylistLoader(manager PlaylistLoaderManager, store PlaylistLoaderStore,
 }
 
 type Queryer interface {
-	scan.Queryer
+	store.Queryer
 	BeginTx(context.Context, *sql.TxOptions) (*sql.Tx, error)
 }
 

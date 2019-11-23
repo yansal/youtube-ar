@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/yansal/sql/scan"
 	"github.com/yansal/youtube-ar/api/log"
 	"github.com/yansal/youtube-ar/api/model"
+	"github.com/yansal/youtube-ar/api/store"
 	"github.com/yansal/youtube-ar/api/tor"
 	"github.com/yansal/youtube-ar/api/youtubedl"
 )
@@ -39,7 +39,7 @@ type Storage interface {
 
 // Store is the store interface required by Downloader.
 type Store interface {
-	AppendLog(ctx context.Context, db scan.Queryer, urlID int64, log *model.Log) error
+	AppendLog(ctx context.Context, db store.Queryer, urlID int64, log *model.Log) error
 }
 
 // New returns a new Downloader.
@@ -48,7 +48,7 @@ func New(tor Tor, youtubedl YoutubeDL, storage Storage, store Store, log log.Log
 }
 
 // DownloadURL downloads an url.
-func (p *Downloader) DownloadURL(ctx context.Context, db scan.Queryer, url *model.URL) (string, error) {
+func (p *Downloader) DownloadURL(ctx context.Context, db store.Queryer, url *model.URL) (string, error) {
 	torready := make(chan tor.Event)
 	torctx, shutdowntor := context.WithCancel(ctx)
 	defer shutdowntor()

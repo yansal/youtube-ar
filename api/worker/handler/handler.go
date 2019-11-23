@@ -4,19 +4,19 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/yansal/sql/scan"
 	"github.com/yansal/youtube-ar/api/broker"
 	"github.com/yansal/youtube-ar/api/event"
+	"github.com/yansal/youtube-ar/api/store"
 )
 
 // Manager is the manager interface required by worker handlers.
 type Manager interface {
-	DownloadURL(context.Context, scan.Queryer, event.URL) error
-	GetOEmbed(context.Context, scan.Queryer, event.URL) error
+	DownloadURL(context.Context, store.Queryer, event.URL) error
+	GetOEmbed(context.Context, store.Queryer, event.URL) error
 }
 
 // DownloadURL is the download-url handler.
-func DownloadURL(m Manager, db scan.Queryer) broker.Handler {
+func DownloadURL(m Manager, db store.Queryer) broker.Handler {
 	return func(ctx context.Context, payload string) error {
 		var e event.URL
 		if err := json.Unmarshal([]byte(payload), &e); err != nil {
@@ -28,7 +28,7 @@ func DownloadURL(m Manager, db scan.Queryer) broker.Handler {
 }
 
 // GetOEmbed is the get-oembed handler.
-func GetOEmbed(m Manager, db scan.Queryer) broker.Handler {
+func GetOEmbed(m Manager, db store.Queryer) broker.Handler {
 	return func(ctx context.Context, payload string) error {
 		var e event.URL
 		if err := json.Unmarshal([]byte(payload), &e); err != nil {

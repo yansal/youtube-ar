@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 
 	"github.com/go-redis/redis"
-	"github.com/yansal/sql/scan"
 	"github.com/yansal/youtube-ar/api/event"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/payload"
+	"github.com/yansal/youtube-ar/api/store"
 )
 
 // Retrier is a retrier.
@@ -26,12 +26,12 @@ type RetrierBroker interface {
 
 // RetrierManager is the manager interface required by Retrier.
 type RetrierManager interface {
-	CreateURL(context.Context, scan.Queryer, payload.URL) (*model.URL, error)
+	CreateURL(context.Context, store.Queryer, payload.URL) (*model.URL, error)
 }
 
 // RetrierStore is the store interface required by Retrier.
 type RetrierStore interface {
-	GetURL(context.Context, scan.Queryer, int64) (*model.URL, error)
+	GetURL(context.Context, store.Queryer, int64) (*model.URL, error)
 }
 
 // NewRetrier returns a new Retrier.
@@ -40,7 +40,7 @@ func NewRetrier(broker RetrierBroker, manager RetrierManager, store RetrierStore
 }
 
 // RetryNextDownloadURL retries the next failed download-url event.
-func (r *Retrier) RetryNextDownloadURL(ctx context.Context, db scan.Queryer) error {
+func (r *Retrier) RetryNextDownloadURL(ctx context.Context, db store.Queryer) error {
 	// TODO: use an atomic rpoplpush to ensure we don't lose any failed event?
 	b, err := r.broker.PopNextFailed(ctx, "download-url")
 	if err == redis.Nil {
@@ -71,7 +71,7 @@ func (r *Retrier) RetryNextDownloadURL(ctx context.Context, db scan.Queryer) err
 }
 
 // RetryDownloadURL retries the download-url event with the given id.
-func (r *Retrier) RetryDownloadURL(ctx context.Context, db scan.Queryer, id int64) (*model.URL, error) {
+func (r *Retrier) RetryDownloadURL(ctx context.Context, db store.Queryer, id int64) (*model.URL, error) {
 	e := &event.URL{ID: id}
 	b, err := json.Marshal(e)
 	if err != nil {
@@ -91,7 +91,7 @@ func (r *Retrier) RetryDownloadURL(ctx context.Context, db scan.Queryer, id int6
 	return r.retry(ctx, db, failed)
 }
 
-func (r *Retrier) retry(ctx context.Context, db scan.Queryer, failed *model.URL) (*model.URL, error) {
+func (r *Retrier) retry(ctx context.Context, db store.Queryer, failed *model.URL) (*model.URL, error) {
 	url := payload.URL{
 		URL:     failed.URL,
 		Retries: failed.Retries.Int64 + 1,
