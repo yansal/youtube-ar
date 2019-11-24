@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 
+	"github.com/yansal/sql/nest"
 	"github.com/yansal/youtube-ar/api/event"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/payload"
 	"github.com/yansal/youtube-ar/api/query"
-	"github.com/yansal/youtube-ar/api/store"
 )
 
 // Server is the manager used for server features.
@@ -25,11 +25,11 @@ type BrokerServer interface {
 
 // StoreServer is the store interface required by Server.
 type StoreServer interface {
-	CreateURL(context.Context, store.Queryer, *model.URL) error
-	GetURL(context.Context, store.Queryer, int64) (*model.URL, error)
-	DeleteURL(context.Context, store.Queryer, int64) error
-	ListURLs(context.Context, store.Queryer, *query.URLs) ([]model.URL, error)
-	ListLogs(context.Context, store.Queryer, int64, *query.Logs) ([]model.Log, error)
+	CreateURL(context.Context, nest.Querier, *model.URL) error
+	GetURL(context.Context, nest.Querier, int64) (*model.URL, error)
+	DeleteURL(context.Context, nest.Querier, int64) error
+	ListURLs(context.Context, nest.Querier, *query.URLs) ([]model.URL, error)
+	ListLogs(context.Context, nest.Querier, int64, *query.Logs) ([]model.Log, error)
 }
 
 // NewServer returns a new Server.
@@ -38,7 +38,7 @@ func NewServer(broker BrokerServer, store StoreServer) *Server {
 }
 
 // CreateURL creates an URL.
-func (m *Server) CreateURL(ctx context.Context, db store.Queryer, p payload.URL) (*model.URL, error) {
+func (m *Server) CreateURL(ctx context.Context, db nest.Querier, p payload.URL) (*model.URL, error) {
 	url := &model.URL{URL: p.URL}
 	if p.Retries != 0 {
 		url.Retries = sql.NullInt64{Valid: true, Int64: p.Retries}
@@ -62,21 +62,21 @@ func (m *Server) CreateURL(ctx context.Context, db store.Queryer, p payload.URL)
 }
 
 // GetURL gets an url.
-func (m *Server) GetURL(ctx context.Context, db store.Queryer, id int64) (*model.URL, error) {
+func (m *Server) GetURL(ctx context.Context, db nest.Querier, id int64) (*model.URL, error) {
 	return m.store.GetURL(ctx, db, id)
 }
 
 // DeleteURL deletes an url.
-func (m *Server) DeleteURL(ctx context.Context, db store.Queryer, id int64) error {
+func (m *Server) DeleteURL(ctx context.Context, db nest.Querier, id int64) error {
 	return m.store.DeleteURL(ctx, db, id)
 }
 
 // ListURLs lists urls.
-func (m *Server) ListURLs(ctx context.Context, db store.Queryer, q *query.URLs) ([]model.URL, error) {
+func (m *Server) ListURLs(ctx context.Context, db nest.Querier, q *query.URLs) ([]model.URL, error) {
 	return m.store.ListURLs(ctx, db, q)
 }
 
 // ListLogs lists logs.
-func (m *Server) ListLogs(ctx context.Context, db store.Queryer, urlID int64, q *query.Logs) ([]model.Log, error) {
+func (m *Server) ListLogs(ctx context.Context, db nest.Querier, urlID int64, q *query.Logs) ([]model.Log, error) {
 	return m.store.ListLogs(ctx, db, urlID, q)
 }

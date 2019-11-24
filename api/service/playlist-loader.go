@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/yansal/sql/nest"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/payload"
 	"github.com/yansal/youtube-ar/api/store"
@@ -19,13 +20,13 @@ type PlaylistLoader struct {
 
 // PlaylistLoaderManager is the manager interface required by PlaylistLoader.
 type PlaylistLoaderManager interface {
-	CreateURL(context.Context, store.Queryer, payload.URL) (*model.URL, error)
+	CreateURL(context.Context, nest.Querier, payload.URL) (*model.URL, error)
 }
 
 // PlaylistLoaderStore is the store interface required by PlaylistLoader.
 type PlaylistLoaderStore interface {
-	GetYoutubeVideoByYoutubeID(context.Context, store.Queryer, string) (*model.YoutubeVideo, error)
-	CreateYoutubeVideo(context.Context, store.Queryer, *model.YoutubeVideo) error
+	GetYoutubeVideoByYoutubeID(context.Context, nest.Querier, string) (*model.YoutubeVideo, error)
+	CreateYoutubeVideo(context.Context, nest.Querier, *model.YoutubeVideo) error
 }
 
 // PlaylistLoaderYoutubeClient is the youtube client interface required by PlaylistLoader.
@@ -38,13 +39,8 @@ func NewPlaylistLoader(manager PlaylistLoaderManager, store PlaylistLoaderStore,
 	return &PlaylistLoader{manager: manager, store: store, youtubeClient: youtubeClient}
 }
 
-type Queryer interface {
-	store.Queryer
-	BeginTx(context.Context, *sql.TxOptions) (*sql.Tx, error)
-}
-
 // CreateURLsFromYoutube creates urls from youtube playlistID.
-func (s *PlaylistLoader) CreateURLsFromYoutube(ctx context.Context, db Queryer, playlistID string) error {
+func (s *PlaylistLoader) CreateURLsFromYoutube(ctx context.Context, db nest.Querier, playlistID string) error {
 	videos, err := s.youtubeClient.GetVideosFromPlaylist(ctx, playlistID)
 	if err != nil {
 		return err
@@ -61,7 +57,7 @@ func (s *PlaylistLoader) CreateURLsFromYoutube(ctx context.Context, db Queryer, 
 	return nil
 }
 
-func (s *PlaylistLoader) getOrCreateYoutubeVideo(ctx context.Context, db Queryer, youtubeID string) (*model.YoutubeVideo, error) {
+func (s *PlaylistLoader) getOrCreateYoutubeVideo(ctx context.Context, db nest.Querier, youtubeID string) (*model.YoutubeVideo, error) {
 	v, err := s.store.GetYoutubeVideoByYoutubeID(ctx, db, youtubeID)
 	if err == nil {
 		return v, nil
@@ -69,23 +65,18 @@ func (s *PlaylistLoader) getOrCreateYoutubeVideo(ctx context.Context, db Queryer
 		return nil, err
 	}
 
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
 	v = &model.YoutubeVideo{YoutubeID: youtubeID}
-	if err := s.store.CreateYoutubeVideo(ctx, tx, v); err != nil {
-		return nil, err
-	}
+	if err := store.Transaction(ctx, db, func(ctx context.Context, tx nest.Querier) error {
+		if err := s.store.CreateYoutubeVideo(ctx, tx, v); err != nil {
+			return err
+		}
 
-	p := payload.URL{URL: "https://www.youtube.com/watch?v=" + youtubeID}
-	if _, err := s.manager.CreateURL(ctx, tx, p); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
+		p := payload.URL{URL: "https://www.youtube.com/watch?v=" + youtubeID}
+		if _, err := s.manager.CreateURL(ctx, tx, p); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 	return v, nil

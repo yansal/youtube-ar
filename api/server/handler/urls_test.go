@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/yansal/sql/nest"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/query"
 	"github.com/yansal/youtube-ar/api/resource"
-	"github.com/yansal/youtube-ar/api/store"
 )
 
 func assertf(t *testing.T, ok bool, msg string, args ...interface{}) {
@@ -24,7 +24,7 @@ type mockManager struct {
 	listURLsFunc func(context.Context, *query.URLs) ([]model.URL, error)
 }
 
-func (m mockManager) ListURLs(ctx context.Context, db store.Queryer, q *query.URLs) ([]model.URL, error) {
+func (m mockManager) ListURLs(ctx context.Context, db nest.Querier, q *query.URLs) ([]model.URL, error) {
 	return m.listURLsFunc(ctx, q)
 }
 

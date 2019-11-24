@@ -6,9 +6,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/yansal/sql/nest"
 	"github.com/yansal/youtube-ar/api/event"
 	"github.com/yansal/youtube-ar/api/model"
-	"github.com/yansal/youtube-ar/api/store"
 )
 
 func assertf(t *testing.T, ok bool, msg string, args ...interface{}) {
@@ -22,7 +22,7 @@ type dowloaderMock struct {
 	downloadURLFunc func(context.Context, *model.URL) (string, error)
 }
 
-func (p dowloaderMock) DownloadURL(ctx context.Context, db store.Queryer, url *model.URL) (string, error) {
+func (p dowloaderMock) DownloadURL(ctx context.Context, db nest.Querier, url *model.URL) (string, error) {
 	return p.downloadURLFunc(ctx, url)
 }
 
@@ -30,15 +30,15 @@ type storeMock struct {
 	unlockURLFunc func(context.Context, *model.URL) error
 }
 
-func (s storeMock) LockURL(ctx context.Context, db store.Queryer, url *model.URL) error {
+func (s storeMock) LockURL(ctx context.Context, db nest.Querier, url *model.URL) error {
 	return nil
 }
 
-func (s storeMock) UnlockURL(ctx context.Context, db store.Queryer, url *model.URL) error {
+func (s storeMock) UnlockURL(ctx context.Context, db nest.Querier, url *model.URL) error {
 	return s.unlockURLFunc(ctx, url)
 }
 
-func (s storeMock) SetOEmbed(ctx context.Context, db store.Queryer, url *model.URL) error {
+func (s storeMock) SetOEmbed(ctx context.Context, db nest.Querier, url *model.URL) error {
 	return nil
 }
 

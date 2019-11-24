@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/yansal/sql/nest"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/query"
 	"github.com/yansal/youtube-ar/api/resource"
 	"github.com/yansal/youtube-ar/api/server"
-	"github.com/yansal/youtube-ar/api/store"
 )
 
 // LogSerializer is the serializer interface required by log handlers.
@@ -20,17 +20,17 @@ type LogSerializer interface {
 
 // ListLogsManager is the manager interface required by ListLogs.
 type ListLogsManager interface {
-	ListLogs(context.Context, store.Queryer, int64, *query.Logs) ([]model.Log, error)
+	ListLogs(context.Context, nest.Querier, int64, *query.Logs) ([]model.Log, error)
 }
 
 // ListLogs is the GET /urls/:id/logs handler.
-func ListLogs(m ListLogsManager, db store.Queryer, s LogSerializer) http.HandlerFunc {
+func ListLogs(m ListLogsManager, db nest.Querier, s LogSerializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serveHTTP(w, r, listLogs(m, db, s))
 	}
 }
 
-func listLogs(m ListLogsManager, db store.Queryer, s LogSerializer) handlerFunc {
+func listLogs(m ListLogsManager, db nest.Querier, s LogSerializer) handlerFunc {
 	return func(r *http.Request) (*response, error) {
 		ctx := r.Context()
 		match := server.ContextMatch(ctx)

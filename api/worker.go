@@ -31,7 +31,7 @@ func runWorker(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	db, err := newSQLDB(log)
+	db, err := newDB(log)
 	if err != nil {
 		return err
 	}

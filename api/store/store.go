@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/yansal/sql/nest"
 	"github.com/yansal/sql/scan"
 	"github.com/yansal/youtube-ar/api/model"
 	"github.com/yansal/youtube-ar/api/query"
@@ -19,7 +20,7 @@ func New() *Store {
 type Store struct{}
 
 // CreateURL creates url.
-func (*Store) CreateURL(ctx context.Context, db Queryer, url *model.URL) error {
+func (*Store) CreateURL(ctx context.Context, db nest.Querier, url *model.URL) error {
 	query, args := querybuilder.Insert("urls", []string{"url", "retries"}).
 		Values(url.URL, url.Retries).
 		Returning("id", "created_at", "updated_at", "status").
@@ -34,7 +35,7 @@ func (*Store) CreateURL(ctx context.Context, db Queryer, url *model.URL) error {
 }
 
 // LockURL locks url.
-func (*Store) LockURL(ctx context.Context, db Queryer, url *model.URL) error {
+func (*Store) LockURL(ctx context.Context, db nest.Querier, url *model.URL) error {
 	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"status": url.Status}).
 		Where(querybuilder.Expr(
@@ -47,7 +48,7 @@ func (*Store) LockURL(ctx context.Context, db Queryer, url *model.URL) error {
 }
 
 // UnlockURL unlocks url.
-func (*Store) UnlockURL(ctx context.Context, db Queryer, url *model.URL) error {
+func (*Store) UnlockURL(ctx context.Context, db nest.Querier, url *model.URL) error {
 	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"status": url.Status, "file": url.File, "error": url.Error}).
 		Where(querybuilder.Expr(
@@ -60,7 +61,7 @@ func (*Store) UnlockURL(ctx context.Context, db Queryer, url *model.URL) error {
 }
 
 // SetOEmbed sets oembed.
-func (*Store) SetOEmbed(ctx context.Context, db Queryer, url *model.URL) error {
+func (*Store) SetOEmbed(ctx context.Context, db nest.Querier, url *model.URL) error {
 	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"oembed": url.OEmbed}).
 		Where(querybuilder.Expr("id").Equal(url.ID)).
@@ -70,7 +71,7 @@ func (*Store) SetOEmbed(ctx context.Context, db Queryer, url *model.URL) error {
 }
 
 // AppendLog create log.
-func (*Store) AppendLog(ctx context.Context, db Queryer, urlID int64, log *model.Log) error {
+func (*Store) AppendLog(ctx context.Context, db nest.Querier, urlID int64, log *model.Log) error {
 	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"logs": querybuilder.Call("array_append", "logs", querybuilder.Bind(log.Log))}).
 		Where(querybuilder.Expr("id").Equal(urlID)).
@@ -80,7 +81,7 @@ func (*Store) AppendLog(ctx context.Context, db Queryer, urlID int64, log *model
 }
 
 // GetURL gets the url with id.
-func (s *Store) GetURL(ctx context.Context, db Queryer, id int64) (*model.URL, error) {
+func (s *Store) GetURL(ctx context.Context, db nest.Querier, id int64) (*model.URL, error) {
 	query, args := querybuilder.Select("id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "logs", "oembed").
 		From("urls").
 		Where(querybuilder.Expr(
@@ -103,7 +104,7 @@ func (s *Store) GetURL(ctx context.Context, db Queryer, id int64) (*model.URL, e
 }
 
 // DeleteURL deletes the url with id.
-func (*Store) DeleteURL(ctx context.Context, db Queryer, id int64) error {
+func (*Store) DeleteURL(ctx context.Context, db nest.Querier, id int64) error {
 	query, args := querybuilder.Update("urls").
 		Set(map[string]interface{}{"deleted_at": time.Now()}).
 		Where(querybuilder.Expr("id").Equal(id)).
@@ -114,7 +115,7 @@ func (*Store) DeleteURL(ctx context.Context, db Queryer, id int64) error {
 }
 
 // ListURLs lists urls.
-func (*Store) ListURLs(ctx context.Context, db Queryer, q *query.URLs) ([]model.URL, error) {
+func (*Store) ListURLs(ctx context.Context, db nest.Querier, q *query.URLs) ([]model.URL, error) {
 	query, args := buildListURLs(q)
 
 	rows, err := db.QueryContext(ctx, query, args...)
@@ -169,7 +170,7 @@ func buildListURLs(q *query.URLs) (string, []interface{}) {
 }
 
 // ListLogs list logs.
-func (s *Store) ListLogs(ctx context.Context, db Queryer, urlID int64, q *query.Logs) ([]model.Log, error) {
+func (s *Store) ListLogs(ctx context.Context, db nest.Querier, urlID int64, q *query.Logs) ([]model.Log, error) {
 	query, args := querybuilder.Select("unnest(logs) as log").
 		From("urls").
 		Where(querybuilder.Expr("id").Equal(urlID)).
@@ -190,7 +191,7 @@ func (s *Store) ListLogs(ctx context.Context, db Queryer, urlID int64, q *query.
 }
 
 // CreateYoutubeVideo creates v.
-func (*Store) CreateYoutubeVideo(ctx context.Context, db Queryer, v *model.YoutubeVideo) error {
+func (*Store) CreateYoutubeVideo(ctx context.Context, db nest.Querier, v *model.YoutubeVideo) error {
 	query, args := querybuilder.Insert("youtube_videos", []string{"youtube_id"}).
 		Values(v.YoutubeID).
 		Returning("id", "created_at").
@@ -205,7 +206,7 @@ func (*Store) CreateYoutubeVideo(ctx context.Context, db Queryer, v *model.Youtu
 }
 
 // GetYoutubeVideoByYoutubeID gets a youtube video from a youtube id.
-func (*Store) GetYoutubeVideoByYoutubeID(ctx context.Context, db Queryer, youtubeID string) (*model.YoutubeVideo, error) {
+func (*Store) GetYoutubeVideoByYoutubeID(ctx context.Context, db nest.Querier, youtubeID string) (*model.YoutubeVideo, error) {
 	query, args := querybuilder.Select("id", "youtube_id", "created_at").
 		From("youtube_videos").
 		Where(querybuilder.Expr("youtube_id").Equal(youtubeID)).

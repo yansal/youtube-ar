@@ -38,7 +38,7 @@ func createURL(ctx context.Context, args []string) error {
 		return err
 	}
 	broker := broker.New(redis, log)
-	db, err := newSQLDB(log)
+	db, err := newDB(log)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func createURLsFromPlaylist(ctx context.Context, args []string) error {
 	youtube := youtube.New(os.Getenv("YOUTUBE_API_KEY"), httpclient)
 	playlistLoader := service.NewPlaylistLoader(manager, store, youtube)
 
-	db, err := newSQLDB(log)
+	db, err := newDB(log)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func listLogs(ctx context.Context, args []string) error {
 	}
 
 	log := log.New()
-	db, err := newSQLDB(log)
+	db, err := newDB(log)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func listURLs(ctx context.Context, args []string) error {
 	}
 
 	log := log.New()
-	db, err := newSQLDB(log)
+	db, err := newDB(log)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func retryNextDownloadURL(ctx context.Context, args []string) error {
 		return err
 	}
 	broker := broker.New(redis, log)
-	db, err := newSQLDB(log)
+	db, err := newDB(log)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func shouldRetry(ctx context.Context, args []string) error {
 	}
 	store := store.New()
 	log := log.New()
-	db, err := newSQLDB(log)
+	db, err := newDB(log)
 	if err != nil {
 		return err
 	}

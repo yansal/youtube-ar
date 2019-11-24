@@ -28,7 +28,7 @@ func runServer(ctx context.Context, args []string) error {
 		return err
 	}
 	broker := broker.New(redis, log)
-	db, err := newSQLDB(log)
+	db, err := newDB(log)
 	if err != nil {
 		return err
 	}
