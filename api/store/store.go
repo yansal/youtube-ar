@@ -83,7 +83,7 @@ func (*Store) AppendLog(ctx context.Context, db nest.Querier, urlID int64, log *
 
 // GetURL gets the url with id.
 func (s *Store) GetURL(ctx context.Context, db nest.Querier, id int64) (*model.URL, error) {
-	query, args := build.Select(
+	query, args := build.Select(build.Columns(
 		"id",
 		"url",
 		"created_at",
@@ -94,9 +94,10 @@ func (s *Store) GetURL(ctx context.Context, db nest.Querier, id int64) (*model.U
 		"retries",
 		"logs",
 		"oembed",
-	).
-		From("urls").
-		Where(build.Expr("id").Equal(build.Bind(id)).And("deleted_at").IsNull()).
+	)...).
+		From(build.Identifier("urls")).
+		Where(build.Infix(build.Identifier("id")).Equal(build.Bind(id)).
+			And(build.Identifier("deleted_at")).IsNull()).
 		Build()
 
 	rows, err := db.QueryContext(ctx, query, args...)
@@ -141,40 +142,48 @@ func (*Store) ListURLs(ctx context.Context, db nest.Querier, q *query.URLs) ([]m
 }
 
 func buildListURLs(q *query.URLs) (string, []interface{}) {
-	stmt := build.Select(
-		"id", "url", "created_at", "updated_at", "status", "error", "file", "retries", "oembed",
-	)
+	stmt := build.Select(build.Columns(
+		"id",
+		"url",
+		"created_at",
+		"updated_at",
+		"status",
+		"error",
+		"file",
+		"retries",
+		"oembed",
+	)...)
 	if q.Q != "" {
 		stmt = stmt.From(
-			"urls",
+			build.Identifier("urls"),
 			build.FromExpr(
 				build.CallExpr("websearch_to_tsquery", build.Bind(q.Q)),
 			).As("tsquery"),
 		)
 	} else {
-		stmt = stmt.From("urls")
+		stmt = stmt.From(build.Identifier("urls"))
 	}
 
-	expr := build.Expr("deleted_at").IsNull()
+	expr := build.Infix(build.Identifier("deleted_at")).IsNull()
 	if q.Status != nil {
-		expr = expr.And("status").In(build.Bind(q.Status))
+		expr = expr.And(build.Identifier("status")).In(build.Bind(q.Status))
 	}
 	if q.Cursor != 0 {
-		expr = expr.And("id").LessThan(build.Bind(q.Cursor))
+		expr = expr.And(build.Identifier("id")).LessThan(build.Bind(q.Cursor))
 	}
 	if q.Q != "" {
-		expr = expr.And("tsv").Op("@@", "tsquery")
+		expr = expr.And(build.Identifier("tsv")).Op("@@", build.Identifier("tsquery"))
 	}
 	stmt = stmt.Where(expr)
 
 	if q.Q != "" {
 		stmt = stmt.OrderBy(
-			build.OrderExpr("ts_rank(tsv, tsquery)", build.Desc),
-			build.OrderExpr("id", build.Desc),
+			build.OrderExpr(build.CallExpr("ts_rank", build.Identifier("tsv"), build.Identifier("tsquery")), build.Desc),
+			build.OrderExpr(build.Identifier("id"), build.Desc),
 		)
 	} else {
 		stmt = stmt.OrderBy(
-			build.OrderExpr("id", build.Desc),
+			build.OrderExpr(build.Identifier("id"), build.Desc),
 		)
 	}
 
@@ -184,9 +193,11 @@ func buildListURLs(q *query.URLs) (string, []interface{}) {
 
 // ListLogs list logs.
 func (s *Store) ListLogs(ctx context.Context, db nest.Querier, urlID int64, q *query.Logs) ([]model.Log, error) {
-	query, args := build.Select("unnest(logs) as log").
-		From("urls").
-		Where(build.Expr("id").Equal(build.Bind(urlID))).
+	query, args := build.Select(
+		build.ColumnExpr(build.CallExpr("unnest", build.Identifier("logs"))).As("log"),
+	).
+		From(build.Identifier("urls")).
+		Where(build.Infix(build.Identifier("id")).Equal(build.Bind(urlID))).
 		Offset(build.Bind(q.Cursor)).
 		Build()
 
@@ -220,9 +231,13 @@ func (*Store) CreateYoutubeVideo(ctx context.Context, db nest.Querier, v *model.
 
 // GetYoutubeVideoByYoutubeID gets a youtube video from a youtube id.
 func (*Store) GetYoutubeVideoByYoutubeID(ctx context.Context, db nest.Querier, youtubeID string) (*model.YoutubeVideo, error) {
-	query, args := build.Select("id", "youtube_id", "created_at").
-		From("youtube_videos").
-		Where(build.Expr("youtube_id").Equal(build.Bind(youtubeID))).
+	query, args := build.Select(build.Columns(
+		"id",
+		"youtube_id",
+		"created_at",
+	)...).
+		From(build.Identifier("youtube_videos")).
+		Where(build.Infix(build.Identifier("youtube_id")).Equal(build.Bind(youtubeID))).
 		Build()
 
 	rows, err := db.QueryContext(ctx, query, args...)
