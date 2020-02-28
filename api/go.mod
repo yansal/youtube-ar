@@ -8,7 +8,7 @@ require (
 	github.com/lib/pq v1.2.0
 	github.com/prometheus/client_golang v1.1.0
 	github.com/yansal/query v0.0.0-20190811123741-1e5b8dc4d6d0
-	github.com/yansal/sql v0.2.0
+	github.com/yansal/sql v0.2.1
 	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4
 )
