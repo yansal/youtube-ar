@@ -23,6 +23,22 @@ type URL struct {
 	OEmbed    []byte         `scan:"oembed"` // json-encoded
 }
 
+// Columns returns URL column names.
+func (URL) Columns() []string {
+	return []string{
+		"id",
+		"url",
+		"created_at",
+		"updated_at",
+		"status",
+		"error",
+		"file",
+		"retries",
+		"logs",
+		"oembed",
+	}
+}
+
 // ShouldRetry reports whether u failed because of a rate limiter or a geo limitation.
 func (u URL) ShouldRetry() bool {
 	if u.Error.String == "signal: killed" {
@@ -58,6 +74,15 @@ type YoutubeVideo struct {
 	ID        int64     `scan:"id"`
 	YoutubeID string    `scan:"youtube_id"`
 	CreatedAt time.Time `scan:"created_at"`
+}
+
+// Columns returns YoutubeVideo column names.
+func (YoutubeVideo) Columns() []string {
+	return []string{
+		"id",
+		"created_at",
+		"youtube_id",
+	}
 }
 
 // Page is the page model.
