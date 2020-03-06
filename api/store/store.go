@@ -41,8 +41,8 @@ func (*Store) CreateURL(ctx context.Context, db nest.Querier, url *model.URL) er
 func (*Store) LockURL(ctx context.Context, db nest.Querier, url *model.URL) error {
 	query, args := build.Update("urls").
 		Set(build.Value("status", build.Bind(url.Status))).
-		Where(build.Infix(build.Ident("id")).Equal(build.Bind(url.ID)).
-			And(build.Infix(build.Ident("status")).Equal(build.String("pending")))).
+		Where(build.Ident("id").Equal(build.Bind(url.ID)).
+			And(build.Ident("status").Equal(build.String("pending")))).
 		Build()
 	_, err := db.ExecContext(ctx, query, args...)
 	return err
@@ -56,8 +56,8 @@ func (*Store) UnlockURL(ctx context.Context, db nest.Querier, url *model.URL) er
 			build.Value("file", build.Bind(url.File)),
 			build.Value("error", build.Bind(url.Error)),
 		).
-		Where(build.Infix(build.Ident("id")).Equal(build.Bind(url.ID)).
-			And(build.Infix(build.Ident("status")).Equal(build.String("processing"))),
+		Where(build.Ident("id").Equal(build.Bind(url.ID)).
+			And(build.Ident("status").Equal(build.String("processing"))),
 		).
 		Build()
 	_, err := db.ExecContext(ctx, query, args...)
@@ -68,7 +68,7 @@ func (*Store) UnlockURL(ctx context.Context, db nest.Querier, url *model.URL) er
 func (*Store) SetOEmbed(ctx context.Context, db nest.Querier, url *model.URL) error {
 	query, args := build.Update("urls").
 		Set(build.Value("oembed", build.Bind(url.OEmbed))).
-		Where(build.Infix(build.Ident("id")).Equal(build.Bind(url.ID))).
+		Where(build.Ident("id").Equal(build.Bind(url.ID))).
 		Build()
 	_, err := db.ExecContext(ctx, query, args...)
 	return err
@@ -78,7 +78,7 @@ func (*Store) SetOEmbed(ctx context.Context, db nest.Querier, url *model.URL) er
 func (*Store) AppendLog(ctx context.Context, db nest.Querier, urlID int64, log *model.Log) error {
 	query, args := build.Update("urls").
 		Set(build.Value("logs", build.CallExpr("array_append", build.Ident("logs"), build.Bind(log.Log)))).
-		Where(build.Infix(build.Ident("id")).Equal(build.Bind(urlID))).
+		Where(build.Ident("id").Equal(build.Bind(urlID))).
 		Build()
 	_, err := db.ExecContext(ctx, query, args...)
 	return err
@@ -89,7 +89,7 @@ func (s *Store) GetURL(ctx context.Context, db nest.Querier, id int64) (*model.U
 	var url model.URL
 	query, args := build.Select(build.Columns(url.Columns()...)...).
 		From(build.Ident("urls")).
-		Where(build.Infix(build.Ident("id")).Equal(build.Bind(id)).
+		Where(build.Ident("id").Equal(build.Bind(id)).
 			And(build.Ident("deleted_at")).IsNull()).
 		Build()
 
@@ -109,7 +109,7 @@ func (s *Store) GetURL(ctx context.Context, db nest.Querier, id int64) (*model.U
 func (*Store) DeleteURL(ctx context.Context, db nest.Querier, id int64) error {
 	query, args := build.Update("urls").
 		Set(build.Value("deleted_at", build.Bind(time.Now()))).
-		Where(build.Infix(build.Ident("id")).Equal(build.Bind(id))).
+		Where(build.Ident("id").Equal(build.Bind(id))).
 		Build()
 
 	_, err := db.ExecContext(ctx, query, args...)
@@ -147,7 +147,7 @@ func buildListURLs(q *query.URLs) (string, []interface{}) {
 		cmd = cmd.From(build.Ident("urls"))
 	}
 
-	expr := build.Infix(build.Ident("deleted_at")).IsNull()
+	expr := build.Ident("deleted_at").IsNull()
 	if q.Status != nil {
 		expr = expr.And(build.Ident("status")).In(build.Bind(q.Status))
 	}
@@ -180,7 +180,7 @@ func (s *Store) ListLogs(ctx context.Context, db nest.Querier, urlID int64, q *q
 		build.ColumnExpr(build.CallExpr("unnest", build.Ident("logs"))).As("log"),
 	).
 		From(build.Ident("urls")).
-		Where(build.Infix(build.Ident("id")).Equal(build.Bind(urlID))).
+		Where(build.Ident("id").Equal(build.Bind(urlID))).
 		Offset(build.Bind(q.Cursor)).
 		Build()
 
@@ -220,7 +220,7 @@ func (*Store) GetYoutubeVideoByYoutubeID(ctx context.Context, db nest.Querier, y
 		"created_at",
 	)...).
 		From(build.Ident("youtube_videos")).
-		Where(build.Infix(build.Ident("youtube_id")).Equal(build.Bind(youtubeID))).
+		Where(build.Ident("youtube_id").Equal(build.Bind(youtubeID))).
 		Build()
 
 	rows, err := db.QueryContext(ctx, query, args...)
